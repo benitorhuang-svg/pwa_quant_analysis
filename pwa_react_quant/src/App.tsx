@@ -8,13 +8,6 @@ import UnitContent from './components/UnitContent';
 console.log('[App] 載入啟動塊');
 
 export default function App() {
-  const [currentUnitId, setCurrentUnitId] = useState<string | null>(null);
-  const [currentUnit, setCurrentUnit] = useState<UnitDef | null>(null);
-  const [loadingUnit, setLoadingUnit] = useState(false);
-  const [pyodideReady, setPyodideReady] = useState(false);
-  const [statusText, setStatusText] = useState('初始化中');
-  const [darkMode, setDarkMode] = useState(true);
-
   // Group metadata for the dropdowns
   const moduleGroups = useMemo(() => {
     const groups: Record<string, { id: string, title: string }[]> = {};
@@ -27,35 +20,45 @@ export default function App() {
   }, []);
 
   const modules = useMemo(() => Object.keys(moduleGroups), [moduleGroups]);
-  const [selectedModule, setSelectedModule] = useState<string>('');
 
-  const handleHashChange = useCallback(() => {
+  const getHashInfo = useCallback(() => {
     const hash = window.location.hash.slice(1) || 'home';
-    console.log('[App] Hash 變更:', hash);
     if (hash.startsWith('unit/')) {
       const id = hash.replace('unit/', '');
-      setCurrentUnitId(id);
       const meta = UNIT_METADATA[id];
-      if (meta) {
-        setSelectedModule(meta.module);
-      }
-    } else {
-      setCurrentUnitId(null);
-      setCurrentUnit(null);
-      if (modules.length > 0) setSelectedModule(modules[0]);
+      return { id, module: meta?.module || '' };
     }
+    return { id: null, module: modules.length > 0 ? modules[0] : '' };
   }, [modules]);
+
+  const [currentUnitId, setCurrentUnitId] = useState<string | null>(() => getHashInfo().id);
+  const [selectedModule, setSelectedModule] = useState<string>(() => getHashInfo().module);
+
+  const [currentUnit, setCurrentUnit] = useState<UnitDef | null>(null);
+  const [loadingUnit, setLoadingUnit] = useState(false);
+  const [pyodideReady, setPyodideReady] = useState(false);
+  const [statusText, setStatusText] = useState('初始化中');
+  const [darkMode, setDarkMode] = useState(true);
+
+  const handleHashChange = useCallback(() => {
+    const { id, module } = getHashInfo();
+    console.log('[App] Hash 變更:', id);
+    setCurrentUnitId(id);
+    if (id) {
+      setLoadingUnit(true);
+      if (module) setSelectedModule(module);
+    } else {
+      setCurrentUnit(null);
+      setLoadingUnit(false);
+    }
+  }, [getHashInfo]);
 
   useEffect(() => {
     console.log('[App] 組件掛載');
-
-    // Initial sync
-    handleHashChange();
     window.addEventListener('hashchange', handleHashChange);
 
     // Python Initialization
     initPyodide(msg => {
-      console.log('[App] Pyodide Progress:', msg);
       setStatusText(msg);
     }).then(() => {
       console.log('[App] Pyodide Ready');
@@ -72,7 +75,7 @@ export default function App() {
   useEffect(() => {
     if (currentUnitId && UNIT_LOADERS[currentUnitId]) {
       console.log('[App] 正在載入單元定義:', currentUnitId);
-      setLoadingUnit(true);
+      // setLoadingUnit(true) is now handled in handleHashChange
       const loader = UNIT_LOADERS[currentUnitId];
       const exportKey = UNIT_EXPORT_MAP[currentUnitId];
 
@@ -84,8 +87,6 @@ export default function App() {
         console.error('[App] 單元載入出錯:', err);
         setLoadingUnit(false);
       });
-    } else {
-      setLoadingUnit(false);
     }
   }, [currentUnitId]);
 

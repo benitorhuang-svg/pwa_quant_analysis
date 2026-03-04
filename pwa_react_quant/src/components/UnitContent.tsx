@@ -11,27 +11,32 @@ interface Props {
     pyodideReady: boolean;
 }
 
+interface StrategyStats {
+    total_return: number;
+    sharpe_ratio: number;
+    win_rate: number;
+    total_trades: number;
+    [key: string]: unknown; // Allow for other optional keys from backtest
+}
+
 export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
     const editorRef = useRef<HTMLDivElement>(null);
     const theoryRef = useRef<HTMLDivElement>(null);
 
-    const [params, setParams] = useState<Record<string, number>>({});
+    const [params, setParams] = useState<Record<string, number>>(() => {
+        const defaults: Record<string, number> = {};
+        if (unit.params) {
+            unit.params.forEach(p => defaults[p.id] = p.default);
+        }
+        return defaults;
+    });
     const [outputLogs, setOutputLogs] = useState<{ text: string, type: string }[]>([]);
     const [isRunning, setIsRunning] = useState(false);
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<StrategyStats | null>(null);
     const [viewMode, setViewMode] = useState<'theory' | 'result'>('theory');
 
-    // Reset when unitId changes
+    // Initialize side-effects when component mounts (or unit changes, but key={} covers this)
     useEffect(() => {
-        const defaultParams: Record<string, number> = {};
-        if (unit.params) {
-            unit.params.forEach(p => defaultParams[p.id] = p.default);
-        }
-        setParams(defaultParams);
-        setOutputLogs([]);
-        setStats(null);
-        setViewMode('theory');
-
         if (editorRef.current) {
             createEditor(editorRef.current, unit.defaultCode);
         }
@@ -41,6 +46,7 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                 setGlobal('stock_data', result.data);
             });
         }
+        // No need to manually reset state here because App.tsx provides key={unitId}
     }, [unitId, unit, pyodideReady]);
 
     // Async trigger katex after theory rendered
@@ -73,9 +79,9 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
         });
 
         if (res.success && res.data) {
-            setStats(res.data);
+            setStats(res.data as StrategyStats);
             setTimeout(() => {
-                unit.renderChart('result-chart', res.data);
+                unit.renderChart('result-chart', res.data as StrategyStats);
             }, 50);
         } else if (!res.success) {
             setOutputLogs(prev => [...prev, { text: '❌ ' + (res.error || '程式執行失敗'), type: 'error' }]);
