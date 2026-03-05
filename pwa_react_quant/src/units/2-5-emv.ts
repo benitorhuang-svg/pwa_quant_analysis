@@ -3,13 +3,13 @@ import { Chart } from 'chart.js';
 import { renderEquityCurve } from '../engine/chart-renderer';
 
 export const unitEmv: UnitDef = {
-    title: '簡易波動 EMV 策略',
-    module: '模組二 · 趨勢跟蹤',
-    difficulty: '進階',
-    description: 'Ease of Movement (EMV) 結合了價格變動與成交量，尋找「輕鬆上漲」或「輕鬆下跌」的低阻力區間。',
-    needsData: true,
+  title: '簡易波動 EMV 策略',
+  module: '模組二 · 趨勢跟蹤',
+  difficulty: '進階',
+  description: 'Ease of Movement (EMV) 結合了價格變動與成交量，尋找「輕鬆上漲」或「輕鬆下跌」的低阻力區間。',
+  needsData: true,
 
-    theory: `
+  theory: `
     <p><strong>簡易波動指標 (Ease of Movement, EMV)</strong> 由 Richard Arms 開發，它的核心邏輯非常獨特。它試圖解答一個問題：<strong>推動價格上漲（或下跌），需要多大的成交量？</strong></p>
 
     <div style="margin: 24px 0; background: var(--bg-hover); border-radius: var(--radius-lg); padding: 20px; text-align: center; border: 1px solid var(--border-subtle);">
@@ -27,20 +27,20 @@ export const unitEmv: UnitDef = {
         <text x="440" y="75" fill="#64748b" font-size="9" text-anchor="end">阻力零軸 (Zero Line)</text>
 
         <!-- EMV Line -->
-        <path d="M 0 80 Q 50 120 100 130 T 160 80 T 260 30 T 360 120 T 450 60" fill="none" stroke="#a855f7" stroke-width="3" />
+        <path class="svg-animated-path" d="M 0 80 Q 50 120 100 130 T 160 80 T 260 30 T 360 120 T 450 60" fill="none" stroke="#a855f7" stroke-width="3" />
         
         <!-- Scene 1: Heavy Volume, Price won't move much (Low EMV near zero) -->
         <rect x="70" y="150" width="20" height="30" fill="rgba(148, 163, 184, 0.4)" stroke="#94a3b8" stroke-width="1" />
         <rect x="100" y="140" width="20" height="40" fill="rgba(148, 163, 184, 0.4)" stroke="#94a3b8" stroke-width="1" />
         <text x="95" y="130" fill="#f59e0b" font-size="10" font-weight="bold" text-anchor="middle">爆出天量，但價格不動</text>
-        <circle cx="95" cy="120" r="4" fill="#f59e0b" />
+        <circle class="svg-breathe" cx="95" cy="120" r="4" fill="#f59e0b" />
         <line x1="95" y1="120" x2="95" y2="80" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2" />
 
         <!-- Scene 2: Low Volume, Price sky rockets (High EMV) -->
         <rect x="230" y="170" width="20" height="10" fill="rgba(148, 163, 184, 0.4)" stroke="#94a3b8" stroke-width="1" />
         <rect x="260" y="165" width="20" height="15" fill="rgba(148, 163, 184, 0.4)" stroke="#94a3b8" stroke-width="1" />
         <text x="255" y="60" fill="#22c55e" font-size="10" font-weight="bold" text-anchor="middle">無量空拋，價格輕鬆暴漲</text>
-        <circle cx="255" cy="40" r="6" fill="#22c55e" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="255" cy="40" r="6" fill="#22c55e" stroke="#0f172a" stroke-width="2" />
         <line x1="255" y1="40" x2="255" y2="160" stroke="#22c55e" stroke-width="1" stroke-dasharray="2,2" />
 
         <!-- Scene 3: Low Volume, Price drops (Low EMV Negative) -->
@@ -70,7 +70,7 @@ export const unitEmv: UnitDef = {
     </div>
   `,
 
-    defaultCode: `import json
+  defaultCode: `import json
 import numpy as np
 from indicators import EMV, Cross
 from backtest_engine import BacktestEngine
@@ -115,49 +115,49 @@ chart_data = {
 }
 `,
 
-    resultVar: 'chart_data',
+  resultVar: 'chart_data',
 
-    renderChart: (canvasId, data) => {
-        const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
-        if (!parent) return;
+  renderChart: (canvasId, data) => {
+    const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
+    if (!parent) return;
 
-        const priceId = canvasId + '-price';
-        const indicatorId = canvasId + '-emv';
-        const equityId = canvasId + '-equity';
-        parent.innerHTML = `
+    const priceId = canvasId + '-price';
+    const indicatorId = canvasId + '-emv';
+    const equityId = canvasId + '-equity';
+    parent.innerHTML = `
       <div class="chart-wrapper" style="height:250px; margin-bottom:12px;"><canvas id="${priceId}"></canvas></div>
       <div class="chart-wrapper" style="height:150px; margin-bottom:12px;"><canvas id="${indicatorId}"></canvas></div>
       <div class="chart-wrapper" style="height:200px;"><canvas id="${equityId}"></canvas></div>
     `;
 
-        renderEquityCurve(equityId, data);
-        const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
+    renderEquityCurve(equityId, data);
+    const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
 
-        new Chart(document.getElementById(indicatorId) as HTMLCanvasElement, {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    { label: 'EMV', data: data.emv, borderColor: '#a855f7', borderWidth: 2, pointRadius: 0, tension: 0.1 },
-                    { label: '零軸', data: new Array(data.emv.length).fill(0), borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, pointRadius: 0 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { title: { display: true, text: 'Ease of Movement (EMV)', color: '#fff' } }
-            }
-        });
-    },
+    new Chart(document.getElementById(indicatorId) as HTMLCanvasElement, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'EMV', data: data.emv, borderColor: '#a855f7', borderWidth: 2, pointRadius: 0, tension: 0.1 },
+          { label: '零軸', data: new Array(data.emv.length).fill(0), borderColor: 'rgba(255,255,255,0.2)', borderWidth: 1, pointRadius: 0 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: 'Ease of Movement (EMV)', color: '#fff' } }
+      }
+    });
+  },
 
-    params: [
-        { id: 'EMV_PERIOD', label: 'EMV 平滑週期', min: 5, max: 40, step: 1, default: 14, format: v => `${v} 日` }
-    ],
+  params: [
+    { id: 'EMV_PERIOD', label: 'EMV 平滑週期', min: 5, max: 40, step: 1, default: 14, format: v => `${v} 日` }
+  ],
 
-    exercises: [
-        '當 EMV 在零軸附近橫盤代表什麼含義？這時候適合進行交易嗎？',
-        '嘗試將 EMV 與均線過濾结合，比如只在價格高於 MA20 時才跟隨 EMV 的金叉。'
-    ],
+  exercises: [
+    '當 EMV 在零軸附近橫盤代表什麼含義？這時候適合進行交易嗎？',
+    '嘗試將 EMV 與均線過濾结合，比如只在價格高於 MA20 時才跟隨 EMV 的金叉。'
+  ],
 
-    prevUnit: { id: '2-4', title: '阿隆指標 Aroon' },
-    nextUnit: { id: '3-1', title: 'Dual Thrust 突破' }
+  prevUnit: { id: '2-4', title: '阿隆指標 Aroon' },
+  nextUnit: { id: '3-1', title: 'Dual Thrust 突破' }
 };

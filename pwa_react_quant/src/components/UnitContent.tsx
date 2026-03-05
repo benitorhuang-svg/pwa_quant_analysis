@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import type { UnitDef } from '../units/types';
 import { createEditor, getCode, setCode } from '../engine/editor';
 import { runAndGetResult, setGlobal } from '../engine/pyodide-runner';
@@ -23,6 +23,8 @@ interface StrategyStats {
 export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
     const editorRef = useRef<HTMLDivElement>(null);
     const theoryRef = useRef<HTMLDivElement>(null);
+    const isResizing = useRef(false);
+    const [leftWidth, setLeftWidth] = useState(50);
 
     const [params, setParams] = useState<Record<string, number>>(() => {
         const defaults: Record<string, number> = {};
@@ -40,7 +42,11 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
 
     useEffect(() => {
         if (editorRef.current) {
-            createEditor(editorRef.current, unit.defaultCode);
+            const savedCode = localStorage.getItem(`quant_code_${unitId}`);
+
+            createEditor(editorRef.current, savedCode || unit.defaultCode, (newCode) => {
+                localStorage.setItem(`quant_code_${unitId}`, newCode);
+            });
         }
 
         if (unit.needsData && pyodideReady) {
@@ -94,8 +100,41 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
         navigator.clipboard.writeText(getCode());
     };
 
+    const handleReset = () => {
+        if (confirm("確定要重設為預設程式碼嗎？這將會覆蓋您目前的修改。")) {
+            setCode(unit.defaultCode);
+            localStorage.setItem(`quant_code_${unitId}`, unit.defaultCode);
+        }
+    };
+
+    const startResizing = useCallback((e: React.MouseEvent) => {
+        isResizing.current = true;
+        document.body.style.cursor = 'col-resize';
+        e.preventDefault();
+    }, []);
+
+    const stopResizing = useCallback(() => {
+        isResizing.current = false;
+        document.body.style.cursor = 'default';
+    }, []);
+
+    const resize = useCallback((e: MouseEvent) => {
+        if (!isResizing.current) return;
+        const width = (e.clientX / window.innerWidth) * 100;
+        if (width > 20 && width < 80) setLeftWidth(width);
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('mousemove', resize);
+        window.addEventListener('mouseup', stopResizing);
+        return () => {
+            window.removeEventListener('mousemove', resize);
+            window.removeEventListener('mouseup', stopResizing);
+        };
+    }, [resize, stopResizing]);
+
     return (
-        <div className="unit-layout-2col">
+        <div className="unit-layout-2col" style={{ gridTemplateColumns: `${leftWidth}% auto ${100 - leftWidth}%` }}>
             {/* ═══ CENTER PANEL ═══ */}
             <div className="unit-center-panel">
                 {/* Top tabs */}
@@ -176,6 +215,9 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                 </div>
             </div>
 
+            {/* ═══ SPLITTER ═══ */}
+            <div className="resizer" onMouseDown={startResizing} />
+
             {/* ═══ RIGHT PANEL ═══ */}
             <div className="unit-editor-panel">
                 {/* Top toolbar: tabs + actions */}
@@ -187,8 +229,12 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                         >
                             <Code2 size={12} /> Code
                         </button>
-                        <button className="editor-tab" onClick={handleCopy} title="Copy Code">
+                        <button className="editor-tab" onClick={handleCopy} title="複製程式碼">
                             <Copy size={12} /> Copy
+                        </button>
+                        <button className="editor-tab" onClick={handleReset} title="還原預設代碼">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+                            Reset
                         </button>
                     </div>
                     <div className="btn-group">

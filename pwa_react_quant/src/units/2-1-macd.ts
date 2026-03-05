@@ -39,17 +39,17 @@ export const unitMacd: UnitDef = {
         <rect x="230" y="90" width="8" height="40" fill="rgba(239, 68, 68, 0.4)" stroke="#ef4444" stroke-width="1" />
         
         <!-- DEA Line (Slow) Orange -->
-        <path d="M 10 120 Q 150 20 250 130 T 450 60" fill="none" stroke="#f59e0b" stroke-width="2" />
+        <path class="svg-animated-path" d="M 10 120 Q 150 20 250 130 T 450 60" fill="none" stroke="#f59e0b" stroke-width="2" />
         
         <!-- DIF Line (Fast) Cyan -->
-        <path d="M 10 150 Q 130 -30 220 160 T 450 20" fill="none" stroke="#06b6d4" stroke-width="2" />
+        <path class="svg-animated-path" d="M 10 150 Q 130 -30 220 160 T 450 20" fill="none" stroke="#06b6d4" stroke-width="2" />
         
         <!-- Golden Cross Point -->
-        <circle cx="102" cy="88" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="102" cy="88" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <text x="102" y="68" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">金叉 (綠柱浮現)</text>
 
         <!-- Death Cross Point -->
-        <circle cx="203" cy="98" r="6" fill="#ef4444" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="203" cy="98" r="6" fill="#ef4444" stroke="#0f172a" stroke-width="2" />
         <text x="203" y="123" fill="#ef4444" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">死叉 (紅柱浮現)</text>
         
         <!-- Legend -->

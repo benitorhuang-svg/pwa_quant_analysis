@@ -1474,3 +1474,66 @@ body::after {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ═══════════════════════════
+SVG ANIMATIONS & UI EFFECTS
+═══════════════════════════ */
+@keyframes drawPath {
+    from {
+        stroke-dashoffset: 1000;
+    }
+
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.svg-animated-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawPath 3s ease-out forwards;
+}
+
+/* Allow SVG paths/elements to render outside viewBox */
+.theory-text svg {
+    overflow: visible;
+}
+
+@keyframes breatheGlow {
+    0% {
+        filter: drop-shadow(0 0 2px currentColor);
+        opacity: 0.7;
+    }
+
+    50% {
+        filter: drop-shadow(0 0 10px currentColor) drop-shadow(0 0 20px currentColor);
+        opacity: 1;
+    }
+
+    100% {
+        filter: drop-shadow(0 0 2px currentColor);
+        opacity: 0.7;
+    }
+}
+
+.svg-breathe {
+    animation: breatheGlow 2.5s infinite ease-in-out;
+}
+
+/* ═══════════════════════════
+RESIZABLE SPLITTER
+═══════════════════════════ */
+.resizer {
+    width: 4px;
+    background-color: var(--border-subtle);
+    cursor: col-resize;
+    position: relative;
+    z-index: 10;
+    transition: background-color 0.2s;
+}
+
+.resizer:hover,
+.resizer.is-resizing {
+    background-color: var(--brand-primary);
+    box-shadow: 0 0 8px var(--brand-glow);
+}

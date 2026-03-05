@@ -25,11 +25,11 @@ export const unitDonchian: UnitDef = {
         <path d="M 0 60 L 100 60 L 100 40 L 150 40 L 150 20 L 450 20 L 450 160 L 250 160 L 250 140 L 200 140 L 200 120 L 0 120 Z" fill="rgba(139, 92, 246, 0.05)" />
         
         <!-- Upper Band (Highest High) -->
-        <path d="M 0 60 L 100 60 L 100 40 L 150 40 L 150 20 L 450 20" fill="none" stroke="#06b6d4" stroke-width="2" />
+        <path class="svg-animated-path" d="M 0 60 L 100 60 L 100 40 L 150 40 L 150 20 L 450 20" fill="none" stroke="#06b6d4" stroke-width="2" />
         <text x="440" y="15" fill="#06b6d4" font-size="10" text-anchor="end">上軌 = N日最高價 (海龜買入點)</text>
         
         <!-- Lower Band (Lowest Low) -->
-        <path d="M 0 120 L 200 120 L 200 140 L 250 140 L 250 160 L 450 160" fill="none" stroke="#ef4444" stroke-width="2" />
+        <path class="svg-animated-path" d="M 0 120 L 200 120 L 200 140 L 250 140 L 250 160 L 450 160" fill="none" stroke="#ef4444" stroke-width="2" />
         <text x="440" y="175" fill="#ef4444" font-size="10" text-anchor="end">下軌 = N日最低價 (反手放空點)</text>
         
         <!-- Middle Band -->
@@ -37,18 +37,18 @@ export const unitDonchian: UnitDef = {
         <text x="440" y="85" fill="#8b5cf6" font-size="10" text-anchor="end">中軌 = (上軌+下軌)/2 (移動停利點)</text>
 
         <!-- Price Path -->
-        <path d="M 0 110 Q 50 70 100 40 T 150 20 T 200 100 T 250 160 T 320 100 T 450 60" fill="none" stroke="#f59e0b" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 0 110 Q 50 70 100 40 T 150 20 T 200 100 T 250 160 T 320 100 T 450 60" fill="none" stroke="#f59e0b" stroke-width="2.5" />
         
         <!-- Signals -->
-        <circle cx="100" cy="40" r="5" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="100" cy="40" r="5" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <line x1="100" y1="40" x2="100" y2="70" stroke="#facc15" stroke-width="1" stroke-dasharray="2,2" />
         <text x="100" y="85" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">創新高買入</text>
 
-        <circle cx="178" cy="70" r="5" fill="#fb923c" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="178" cy="70" r="5" fill="#fb923c" stroke="#0f172a" stroke-width="2" />
         <line x1="178" y1="70" x2="178" y2="50" stroke="#fb923c" stroke-width="1" stroke-dasharray="2,2" />
         <text x="178" y="45" fill="#fb923c" font-size="10" font-weight="bold" text-anchor="middle">跌破中軌(停利)</text>
 
-        <circle cx="250" cy="160" r="5" fill="#06b6d4" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="250" cy="160" r="5" fill="#06b6d4" stroke="#0f172a" stroke-width="2" />
         <line x1="250" y1="160" x2="250" y2="130" stroke="#06b6d4" stroke-width="1" stroke-dasharray="2,2" />
         <text x="250" y="125" fill="#06b6d4" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">創新低賣出</text>
       </svg>

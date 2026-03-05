@@ -15,14 +15,23 @@ const darkTheme = EditorView.theme({
     }
 });
 
-export function createEditor(container: HTMLElement, code: string): EditorView {
+export function createEditor(container: HTMLElement, code: string, onChange?: (code: string) => void): EditorView {
     if (currentView) {
         currentView.destroy();
     }
 
+    const extensions = [basicSetup, python(), oneDark, darkTheme];
+    if (onChange) {
+        extensions.push(EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+                onChange(update.state.doc.toString());
+            }
+        }));
+    }
+
     currentView = new EditorView({
         doc: code,
-        extensions: [basicSetup, python(), oneDark, darkTheme],
+        extensions,
         parent: container
     });
 

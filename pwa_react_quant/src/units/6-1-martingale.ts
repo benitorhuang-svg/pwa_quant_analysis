@@ -3,13 +3,13 @@ import { Chart } from 'chart.js';
 import { renderEquityCurve } from '../engine/chart-renderer';
 
 export const unitMartingale: UnitDef = {
-    title: '馬丁格爾策略與倍增法',
-    module: '模組六 · 風險與資金管理',
-    difficulty: '進階',
-    description: '馬丁格爾理論：在虧損時倍增賭注，直到一次獲利將先前所有虧損連本帶利贏回來。在量化中常表現為價格下跌時加倉。',
-    needsData: true,
+  title: '馬丁格爾策略與倍增法',
+  module: '模組六 · 風險與資金管理',
+  difficulty: '進階',
+  description: '馬丁格爾理論：在虧損時倍增賭注，直到一次獲利將先前所有虧損連本帶利贏回來。在量化中常表現為價格下跌時加倉。',
+  needsData: true,
 
-    theory: `
+  theory: `
     <p><strong>馬丁格爾 (Martingale)</strong> 策略起源於 18 世紀法國賭場，其核心思維極其暴力且直觀：「<strong>不管前面輸多少次，只要最後贏一次，就能收回全部本金並獲利。</strong>」</p>
 
     <div style="margin: 24px 0; background: var(--bg-hover); border-radius: var(--radius-lg); padding: 20px; text-align: center; border: 1px solid var(--border-subtle);">
@@ -22,7 +22,7 @@ export const unitMartingale: UnitDef = {
         </g>
         
         <!-- Price Path Downwards -->
-        <path d="M 0 40 L 100 80 L 200 120 L 300 160" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="2,2" />
+        <path class="svg-animated-path" d="M 0 40 L 100 80 L 200 120 L 300 160" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="2,2" />
         <text x="310" y="165" fill="#64748b" font-size="10" text-anchor="start">資產價格連續下跌</text>
 
         <!-- Step 1: 1x Position -->
@@ -41,13 +41,13 @@ export const unitMartingale: UnitDef = {
         <line x1="300" y1="160" x2="450" y2="160" stroke="#facc15" stroke-width="0.5" stroke-dasharray="2,2" />
 
         <!-- Average Cost Line (Pulled down rapidly) -->
-        <path d="M 100 80 L 200 106.6 L 300 137" fill="none" stroke="#06b6d4" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 100 80 L 200 106.6 L 300 137" fill="none" stroke="#06b6d4" stroke-width="2.5" />
         <circle cx="300" cy="137" r="4" fill="#06b6d4" />
         <text x="310" y="140" fill="#06b6d4" font-size="10" font-weight="bold" text-anchor="start">均價大幅拉低</text>
 
         <!-- Final Win: Rebound -->
-        <path d="M 300 160 Q 350 160 400 130" fill="none" stroke="#22c55e" stroke-width="2.5" />
-        <circle cx="400" cy="130" r="5" fill="#22c55e" stroke="#0f172a" stroke-width="2" />
+        <path class="svg-animated-path" d="M 300 160 Q 350 160 400 130" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <circle class="svg-breathe" cx="400" cy="130" r="5" fill="#22c55e" stroke="#0f172a" stroke-width="2" />
         <text x="400" y="115" fill="#22c55e" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);">一波反彈，全部回本！</text>
         
         <!-- Danger Zone (Bankruptcy) -->
@@ -75,7 +75,7 @@ export const unitMartingale: UnitDef = {
     </div>
   `,
 
-    defaultCode: `import json
+  defaultCode: `import json
 import numpy as np
 from backtest_engine import BacktestEngine
 
@@ -136,23 +136,23 @@ print(f"總報酬率: {report['total_return']:+.2f}%")
 chart_data = report
 `,
 
-    resultVar: 'chart_data',
+  resultVar: 'chart_data',
 
-    renderChart: (canvasId, data) => {
-        renderEquityCurve(canvasId, data);
-    },
+  renderChart: (canvasId, data) => {
+    renderEquityCurve(canvasId, data);
+  },
 
-    params: [
-        { id: 'BASE_PCT', label: '首注比例', min: 0.01, max: 0.2, step: 0.01, default: 0.05, format: v => `${(v * 100).toFixed(0)}%` },
-        { id: 'DROP_STEP', label: '加碼跌幅', min: 1, max: 10, step: 0.5, default: 2, format: v => `${v}%` },
-        { id: 'TAKE_PROFIT', label: '目標獲利', min: 0.5, max: 5, step: 0.5, default: 1, format: v => `${v}%` }
-    ],
+  params: [
+    { id: 'BASE_PCT', label: '首注比例', min: 0.01, max: 0.2, step: 0.01, default: 0.05, format: v => `${(v * 100).toFixed(0)}%` },
+    { id: 'DROP_STEP', label: '加碼跌幅', min: 1, max: 10, step: 0.5, default: 2, format: v => `${v}%` },
+    { id: 'TAKE_PROFIT', label: '目標獲利', min: 0.5, max: 5, step: 0.5, default: 1, format: v => `${v}%` }
+  ],
 
-    exercises: [
-        '觀察資金曲線。馬丁格爾通常看起來非常平滑，但一旦遇到大回檔，曲線會呈現劇烈的垂直下跌。這說明了什麼？',
-        '試著將「加碼跌幅」縮小到 1%，觀察你的資金是否會更快被耗盡。'
-    ],
+  exercises: [
+    '觀察資金曲線。馬丁格爾通常看起來非常平滑，但一旦遇到大回檔，曲線會呈現劇烈的垂直下跌。這說明了什麼？',
+    '試著將「加碼跌幅」縮小到 1%，觀察你的資金是否會更快被耗盡。'
+  ],
 
-    prevUnit: { id: '5-2', title: '乖離率 BIAS' },
-    nextUnit: { id: '6-2', title: '凱利公式' }
+  prevUnit: { id: '5-2', title: '乖離率 BIAS' },
+  nextUnit: { id: '6-2', title: '凱利公式' }
 };

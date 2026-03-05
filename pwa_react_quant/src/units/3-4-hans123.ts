@@ -35,10 +35,10 @@ export const unitHans123: UnitDef = {
         <text x="440" y="135" fill="#ef4444" font-size="10" text-anchor="end">下軌 = 早盤最低價 (放空線)</text>
 
         <!-- Price Path: whipsaws inside the box, then breaks out -->
-        <path d="M 0 100 Q 20 60 40 120 T 80 50 T 130 110 T 180 80 T 220 130 Q 260 40 320 20 T 450 10" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 0 100 Q 20 60 40 120 T 80 50 T 130 110 T 180 80 T 220 130 Q 260 40 320 20 T 450 10" fill="none" stroke="#22c55e" stroke-width="2.5" />
         
         <!-- Breakout Signal -->
-        <circle cx="253" cy="50" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="253" cy="50" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <line x1="253" y1="50" x2="253" y2="80" stroke="#facc15" stroke-width="1" stroke-dasharray="2,2" />
         <text x="253" y="95" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">突破早盤高點！(追多)</text>
       </svg>

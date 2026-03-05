@@ -41,18 +41,18 @@ export const unitAdxMacd: UnitDef = {
         <text x="440" y="145" fill="#f59e0b" font-size="9" text-anchor="end">ADX = 25 天險</text>
 
         <!-- MACD DIF Line (Cyan) -->
-        <path d="M 0 40 Q 60 40 130 80 T 260 80 T 360 40 T 450 30" fill="none" stroke="#06b6d4" stroke-width="2" />
+        <path class="svg-animated-path" d="M 0 40 Q 60 40 130 80 T 260 80 T 360 40 T 450 30" fill="none" stroke="#06b6d4" stroke-width="2" />
         
         <!-- ADX Line (Pink) -->
-        <path d="M 0 120 Q 50 120 100 130 T 150 160 T 225 170 T 280 160 T 320 130 T 400 110" fill="none" stroke="#ec4899" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 0 120 Q 50 120 100 130 T 150 160 T 225 170 T 280 160 T 320 130 T 400 110" fill="none" stroke="#ec4899" stroke-width="2.5" />
         
         <!-- Ignoring MACD Crossover in flat zone -->
-        <circle cx="215" cy="80" r="5" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="2,2" />
+        <circle class="svg-breathe" cx="215" cy="80" r="5" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="2,2" />
         <line x1="215" y1="80" x2="215" y2="165" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3,3" />
         <text x="215" y="65" fill="#94a3b8" font-size="10" font-weight="bold" text-anchor="middle">忽略假金叉 (ADX < 25)</text>
 
         <!-- Valid Golden Cross -->
-        <circle cx="340" cy="53" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="340" cy="53" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <line x1="340" y1="53" x2="340" y2="120" stroke="#facc15" stroke-width="1" stroke-dasharray="3,3" />
         <text x="340" y="40" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">有效買入 (ADX > 25)</text>
       </svg>

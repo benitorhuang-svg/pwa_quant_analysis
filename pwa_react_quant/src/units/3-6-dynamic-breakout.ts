@@ -26,7 +26,7 @@ export const unitDynamicBreakout: UnitDef = {
         <path d="M 0 80 Q 75 90 150 80" fill="none" stroke="#06b6d4" stroke-width="2" stroke-dasharray="4,4" />
         <path d="M 0 120 Q 75 110 150 120" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4" />
         
-        <path d="M 0 100 Q 30 110 60 90 T 130 95 T 150 100" fill="none" stroke="#cbd5e1" stroke-width="1.5" />
+        <path class="svg-animated-path" d="M 0 100 Q 30 110 60 90 T 130 95 T 150 100" fill="none" stroke="#cbd5e1" stroke-width="1.5" />
         <text x="75" y="145" fill="#94a3b8" font-size="10" text-anchor="middle">低波動期 (ATR極小)</text>
         <line x1="75" y1="80" x2="75" y2="120" stroke="#06b6d4" stroke-width="1" />
         <text x="78" y="105" fill="#06b6d4" font-size="9" text-anchor="start">窄軌道</text>
@@ -39,14 +39,14 @@ export const unitDynamicBreakout: UnitDef = {
         <path d="M 150 40 Q 300 30 450 40" fill="none" stroke="#06b6d4" stroke-width="2" stroke-dasharray="4,4" />
         <path d="M 150 160 Q 300 170 450 160" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4" />
         
-        <path d="M 150 100 Q 180 140 210 60 T 270 150 T 320 60 T 380 110" fill="none" stroke="#cbd5e1" stroke-width="1.5" />
+        <path class="svg-animated-path" d="M 150 100 Q 180 140 210 60 T 270 150 T 320 60 T 380 110" fill="none" stroke="#cbd5e1" stroke-width="1.5" />
         <text x="250" y="185" fill="#94a3b8" font-size="10" text-anchor="middle">高波動震盪期 (ATR極大)</text>
         <line x1="250" y1="40" x2="250" y2="160" stroke="#06b6d4" stroke-width="1" />
         <text x="255" y="105" fill="#06b6d4" font-size="9" text-anchor="start">寬軌道防守</text>
 
         <!-- Dynamic Breakout -->
-        <path d="M 380 110 Q 400 80 430 10" fill="none" stroke="#22c55e" stroke-width="2.5" />
-        <circle cx="415" cy="40" r="5" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <path class="svg-animated-path" d="M 380 110 Q 400 80 430 10" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <circle class="svg-breathe" cx="415" cy="40" r="5" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <text x="415" y="30" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">真突破！</text>
       </svg>
     </div>

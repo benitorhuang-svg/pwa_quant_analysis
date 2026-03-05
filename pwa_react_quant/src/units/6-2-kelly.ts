@@ -2,12 +2,12 @@ import type { UnitDef } from './types';
 import { renderMultiLine } from '../engine/chart-renderer';
 
 export const unitKelly: UnitDef = {
-    title: '凱利公式驗證',
-    module: '模組六 · 風險與資金管理',
-    difficulty: '基礎',
-    description: '透過蒙地卡羅模擬，驗證凱利公式如何幫助我們計算最佳下注比例。',
+  title: '凱利公式驗證',
+  module: '模組六 · 風險與資金管理',
+  difficulty: '基礎',
+  description: '透過蒙地卡羅模擬，驗證凱利公式如何幫助我們計算最佳下注比例。',
 
-    theory: `
+  theory: `
     <p><strong>凱利公式（Kelly Criterion）</strong>是一個用來決定最佳下注比例的數學公式，由約翰·凱利（John L. Kelly Jr.）於 1956 年提出，至今仍是量化資金管理領域的聖經。</p>
 
     <div style="margin: 24px 0; background: var(--bg-hover); border-radius: var(--radius-lg); padding: 20px; text-align: center; border: 1px solid var(--border-subtle);">
@@ -27,13 +27,13 @@ export const unitKelly: UnitDef = {
 
         <!-- The Kelly Curve (Parabola) -->
         <!-- Optimal Kelly at 50%, zero growth around 100% -->
-        <path d="M 50 180 Q 150 20 250 180" fill="none" stroke="#22c55e" stroke-width="3" />
+        <path class="svg-animated-path" d="M 50 180 Q 150 20 250 180" fill="none" stroke="#22c55e" stroke-width="3" />
         
         <!-- Danger Zone Curve -->
         <path d="M 250 180 Q 320 280 400 350" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="4,4" />
         
         <!-- Optimal Kelly Point -->
-        <circle cx="150" cy="80" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="150" cy="80" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <line x1="150" y1="80" x2="150" y2="180" stroke="#facc15" stroke-width="1" stroke-dasharray="2,2" />
         <text x="150" y="65" fill="#facc15" font-size="12" font-weight="bold" text-anchor="middle">f* (最佳凱利點)</text>
         <text x="150" y="195" fill="#facc15" font-size="10" text-anchor="middle">最高增長點</text>
@@ -76,7 +76,7 @@ export const unitKelly: UnitDef = {
     </div>
   `,
 
-    defaultCode: `import random
+  defaultCode: `import random
 import json
 
 # ═══ 策略參數（可修改！）═══
@@ -126,23 +126,23 @@ chart_data = {
 }
 `,
 
-    resultVar: 'chart_data',
+  resultVar: 'chart_data',
 
-    renderChart: (canvasId, data) => renderMultiLine(canvasId, data),
+  renderChart: (canvasId, data) => renderMultiLine(canvasId, data),
 
-    params: [
-        { id: 'win_rate', label: '勝率', min: 0.3, max: 0.8, step: 0.01, default: 0.55, format: v => `${(v * 100).toFixed(0)}%` },
-        { id: 'payout', label: '賠率', min: 1.0, max: 5.0, step: 0.1, default: 2.0, format: v => `${v.toFixed(1)}:1` },
-        { id: 'rounds', label: '模擬次數', min: 100, max: 5000, step: 100, default: 1000, format: v => v.toString() }
-    ],
+  params: [
+    { id: 'win_rate', label: '勝率', min: 0.3, max: 0.8, step: 0.01, default: 0.55, format: v => `${(v * 100).toFixed(0)}%` },
+    { id: 'payout', label: '賠率', min: 1.0, max: 5.0, step: 0.1, default: 2.0, format: v => `${v.toFixed(1)}:1` },
+    { id: 'rounds', label: '模擬次數', min: 100, max: 5000, step: 100, default: 1000, format: v => v.toString() }
+  ],
 
-    exercises: [
-        '將勝率改為 50%、賠率改為 2:1，觀察凱利比例的變化',
-        '嘗試將下注比例設為 80%，觀察會發生什麼',
-        '將賠率降到 1.5:1，勝率需要多少才不會虧損？',
-        '修改代碼移除 random.seed(42)，多次執行觀察結果的波動'
-    ],
+  exercises: [
+    '將勝率改為 50%、賠率改為 2:1，觀察凱利比例的變化',
+    '嘗試將下注比例設為 80%，觀察會發生什麼',
+    '將賠率降到 1.5:1，勝率需要多少才不會虧損？',
+    '修改代碼移除 random.seed(42)，多次執行觀察結果的波動'
+  ],
 
-    prevUnit: { id: '1-1', title: '雙均線策略' },
-    nextUnit: null
+  prevUnit: { id: '1-1', title: '雙均線策略' },
+  nextUnit: null
 };

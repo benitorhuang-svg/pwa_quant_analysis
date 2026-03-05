@@ -3,13 +3,13 @@ import { Chart } from 'chart.js';
 import { renderEquityCurve } from '../engine/chart-renderer';
 
 export const unitFiali: UnitDef = {
-    title: '菲阿里四價策略',
-    module: '模組三 · 突破策略',
-    difficulty: '進階',
-    description: '由日本傳奇操盤手菲阿里提出的突破策略，使用昨日的收盤、最高、最低以及今日開盤這四個關鍵價格來建立防線。',
-    needsData: true,
+  title: '菲阿里四價策略',
+  module: '模組三 · 突破策略',
+  difficulty: '進階',
+  description: '由日本傳奇操盤手菲阿里提出的突破策略，使用昨日的收盤、最高、最低以及今日開盤這四個關鍵價格來建立防線。',
+  needsData: true,
 
-    theory: `
+  theory: `
     <p><strong>菲阿里四價 (Filari Four Prices)</strong> 是一個非常經典且暴力的純 K 線支撐壓力突破策略。作者菲阿里（Filari）曾依靠這套極簡法則在多次日本期貨比賽中奪冠。</p>
 
     <div style="margin: 24px 0; background: var(--bg-hover); border-radius: var(--radius-lg); padding: 20px; text-align: center; border: 1px solid var(--border-subtle);">
@@ -39,9 +39,9 @@ export const unitFiali: UnitDef = {
         <text x="190" y="105" fill="#f59e0b" font-size="10" text-anchor="end">今日開盤 (Open)</text>
         
         <!-- Price Path Breakout -->
-        <path d="M 200 100 Q 230 140 250 110 T 280 60 T 320 30 T 450 -10" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 200 100 Q 230 140 250 110 T 280 60 T 320 30 T 450 -10" fill="none" stroke="#22c55e" stroke-width="2.5" />
         
-        <circle cx="304" cy="40" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="304" cy="40" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <line x1="304" y1="40" x2="304" y2="70" stroke="#facc15" stroke-width="1" stroke-dasharray="2,2" />
         <text x="304" y="85" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">漲破昨日最高！追多</text>
 
@@ -64,7 +64,7 @@ export const unitFiali: UnitDef = {
     </div>
   `,
 
-    defaultCode: `import json
+  defaultCode: `import json
 import numpy as np
 from backtest_engine import BacktestEngine
 
@@ -114,46 +114,46 @@ chart_data = {
 }
 `,
 
-    resultVar: 'chart_data',
+  resultVar: 'chart_data',
 
-    renderChart: (canvasId, data) => {
-        const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
-        if (!parent) return;
+  renderChart: (canvasId, data) => {
+    const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
+    if (!parent) return;
 
-        const priceId = canvasId + '-price';
-        const equityId = canvasId + '-equity';
-        parent.innerHTML = `
+    const priceId = canvasId + '-price';
+    const equityId = canvasId + '-equity';
+    parent.innerHTML = `
       <div class="chart-wrapper" style="height:350px; margin-bottom:12px;"><canvas id="${priceId}"></canvas></div>
       <div class="chart-wrapper" style="height:250px;"><canvas id="${equityId}"></canvas></div>
     `;
 
-        renderEquityCurve(equityId, data);
-        const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
+    renderEquityCurve(equityId, data);
+    const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
 
-        new Chart(document.getElementById(priceId) as HTMLCanvasElement, {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    { label: '收盤價', data: data.closes, borderColor: '#e2e8f0', borderWidth: 1, pointRadius: 0 },
-                    { label: '昨日最高價', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [2, 2], pointRadius: 0 },
-                    { label: '昨日最低價', data: data.lower, borderColor: '#ef4444', borderWidth: 1, borderDash: [2, 2], pointRadius: 0 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { title: { display: true, text: '菲阿里四價突破軌道', color: '#fff' } }
-            }
-        });
-    },
+    new Chart(document.getElementById(priceId) as HTMLCanvasElement, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: '收盤價', data: data.closes, borderColor: '#e2e8f0', borderWidth: 1, pointRadius: 0 },
+          { label: '昨日最高價', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [2, 2], pointRadius: 0 },
+          { label: '昨日最低價', data: data.lower, borderColor: '#ef4444', borderWidth: 1, borderDash: [2, 2], pointRadius: 0 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '菲阿里四價突破軌道', color: '#fff' } }
+      }
+    });
+  },
 
-    params: [], // 菲阿里四價固定使用昨日數據，無需參數調優，這也是作者的精神
+  params: [], // 菲阿里四價固定使用昨日數據，無需參數調優，這也是作者的精神
 
-    exercises: [
-        '目前的邏輯是簡單的「突破買入，跌破賣出」，試著思考：如果在突破時增加成交量的過濾條件，會不會更有效？',
-        '嘗試思考：為什麼收盤價突破昨日最高價，會被認為是強烈的買入訊號？'
-    ],
+  exercises: [
+    '目前的邏輯是簡單的「突破買入，跌破賣出」，試著思考：如果在突破時增加成交量的過濾條件，會不會更有效？',
+    '嘗試思考：為什麼收盤價突破昨日最高價，會被認為是強烈的買入訊號？'
+  ],
 
-    prevUnit: { id: '3-4', title: 'Hans123 突破' },
-    nextUnit: { id: '3-6', title: '動態波幅突破' }
+  prevUnit: { id: '3-4', title: 'Hans123 突破' },
+  nextUnit: { id: '3-6', title: '動態波幅突破' }
 };

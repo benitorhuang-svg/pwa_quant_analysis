@@ -3,13 +3,13 @@ import { renderEquityCurve } from '../engine/chart-renderer';
 import { Chart } from 'chart.js';
 
 export const unitDualThrust: UnitDef = {
-    title: 'Dual Thrust 日內突破',
-    module: '模組三 · 突破策略',
-    difficulty: '進階',
-    description: '由 Michael Boulos 提出，曾在華爾街名噪一時的經典區間突破型策略。',
-    needsData: true,
+  title: 'Dual Thrust 日內突破',
+  module: '模組三 · 突破策略',
+  difficulty: '進階',
+  description: '由 Michael Boulos 提出，曾在華爾街名噪一時的經典區間突破型策略。',
+  needsData: true,
 
-    theory: `
+  theory: `
     <p><strong>Dual Thrust</strong> 是一個著名的日內趨勢突破系統，由 Michael Boulos 提出。它曾被 Future Truth 雜誌評選為最賺錢的策略之一，是典型的「開盤區間突破」進化版。</p>
 
     <div style="margin: 24px 0; background: var(--bg-hover); border-radius: var(--radius-lg); padding: 20px; text-align: center; border: 1px solid var(--border-subtle);">
@@ -46,10 +46,10 @@ export const unitDualThrust: UnitDef = {
         <text x="440" y="145" fill="#ef4444" font-size="10" text-anchor="end">下軌 = Open - K2 × Range</text>
 
         <!-- Price Path Breakout -->
-        <path d="M 100 120 Q 150 140 200 100 T 260 80 T 320 60 T 450 20" fill="none" stroke="#06b6d4" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 100 120 Q 150 140 200 100 T 260 80 T 320 60 T 450 20" fill="none" stroke="#06b6d4" stroke-width="2.5" />
         
         <!-- Long signal -->
-        <circle cx="280" cy="70" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="280" cy="70" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <line x1="280" y1="70" x2="280" y2="40" stroke="#facc15" stroke-width="1" stroke-dasharray="2,2" />
         <text x="280" y="35" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">突破上軌 (做多)</text>
       </svg>
@@ -75,7 +75,7 @@ export const unitDualThrust: UnitDef = {
     </div>
   `,
 
-    defaultCode: `import json
+  defaultCode: `import json
 import numpy as np
 from indicators import Highest, Lowest, MA
 from backtest_engine import BacktestEngine
@@ -150,15 +150,15 @@ chart_data = {
 }
 `,
 
-    resultVar: 'chart_data',
+  resultVar: 'chart_data',
 
-    renderChart: (canvasId, data) => {
-        const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
-        if (!parent) return;
+  renderChart: (canvasId, data) => {
+    const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
+    if (!parent) return;
 
-        const priceId = canvasId + '-price';
-        const equityId = canvasId + '-equity';
-        parent.innerHTML = `
+    const priceId = canvasId + '-price';
+    const equityId = canvasId + '-equity';
+    parent.innerHTML = `
       <div class="chart-wrapper" style="height:350px; margin-bottom:16px;">
         <canvas id="${priceId}"></canvas>
       </div>
@@ -167,50 +167,50 @@ chart_data = {
       </div>
     `;
 
-        renderEquityCurve(equityId, data);
+    renderEquityCurve(equityId, data);
 
-        const ctx = document.getElementById(priceId) as HTMLCanvasElement;
-        if (ctx) {
-            const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
-            const buy = new Array(data.closes.length).fill(null);
-            const sell = new Array(data.closes.length).fill(null);
-            data.trades?.forEach((t: any) => {
-                if (t.type === 'BUY') buy[t.index] = data.closes[t.index];
-                if (t.type === 'SELL') sell[t.index] = data.closes[t.index];
-            });
+    const ctx = document.getElementById(priceId) as HTMLCanvasElement;
+    if (ctx) {
+      const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
+      const buy = new Array(data.closes.length).fill(null);
+      const sell = new Array(data.closes.length).fill(null);
+      data.trades?.forEach((t: any) => {
+        if (t.type === 'BUY') buy[t.index] = data.closes[t.index];
+        if (t.type === 'SELL') sell[t.index] = data.closes[t.index];
+      });
 
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: '收盤價', data: data.closes, borderColor: '#e2e8f0', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
-                        { label: '上軌', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1 },
-                        { label: '下軌', data: data.lower, borderColor: '#f59e0b', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1 },
-                        { label: '買入', data: buy, borderColor: '#22c55e', backgroundColor: '#22c55e', pointRadius: 5, pointStyle: 'triangle', showLine: false },
-                        { label: '賣出', data: sell, borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 5, pointStyle: 'triangle', pointRotation: 180, showLine: false }
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#94a3b8' } }, title: { display: true, text: '📈 價格與突破軌道', color: '#e2e8f0' } },
-                    scales: { x: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } }, y: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } } }
-                }
-            });
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: '收盤價', data: data.closes, borderColor: '#e2e8f0', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
+            { label: '上軌', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1 },
+            { label: '下軌', data: data.lower, borderColor: '#f59e0b', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1, fill: '-1', backgroundColor: 'rgba(6, 182, 212, 0.1)' },
+            { label: '買入', data: buy, borderColor: '#22c55e', backgroundColor: '#22c55e', pointRadius: 5, pointStyle: 'triangle', showLine: false },
+            { label: '賣出', data: sell, borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 5, pointStyle: 'triangle', pointRotation: 180, showLine: false }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#94a3b8' } }, title: { display: true, text: '📈 價格與突破軌道', color: '#e2e8f0' } },
+          scales: { x: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } }, y: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } } }
         }
-    },
+      });
+    }
+  },
 
-    params: [
-        { id: 'N', label: '週期 N', min: 2, max: 20, step: 1, default: 4, format: v => `${v} 天` },
-        { id: 'K1', label: '上軌 K1', min: 0.1, max: 2.0, step: 0.1, default: 0.5, format: v => v.toFixed(1) },
-        { id: 'K2', label: '下軌 K2', min: 0.1, max: 2.0, step: 0.1, default: 0.5, format: v => v.toFixed(1) }
-    ],
+  params: [
+    { id: 'N', label: '週期 N', min: 2, max: 20, step: 1, default: 4, format: v => `${v} 天` },
+    { id: 'K1', label: '上軌 K1', min: 0.1, max: 2.0, step: 0.1, default: 0.5, format: v => v.toFixed(1) },
+    { id: 'K2', label: '下軌 K2', min: 0.1, max: 2.0, step: 0.1, default: 0.5, format: v => v.toFixed(1) }
+  ],
 
-    exercises: [
-        '目前的 K1=0.5, K2=0.5 是對稱的。嘗試把 K1 改為 0.2，K2 改為 0.8，看看在多頭明顯的市場下勝率是否提升？',
-        '把 N 修改為 10，軌道會變寬，交易次數會變多還是變少？'
-    ],
+  exercises: [
+    '目前的 K1=0.5, K2=0.5 是對稱的。嘗試把 K1 改為 0.2，K2 改為 0.8，看看在多頭明顯的市場下勝率是否提升？',
+    '把 N 修改為 10，軌道會變寬，交易次數會變多還是變少？'
+  ],
 
-    prevUnit: { id: '2-1', title: 'MACD 策略' },
-    nextUnit: { id: '6-1', title: '馬丁格爾策略' }
+  prevUnit: { id: '2-1', title: 'MACD 策略' },
+  nextUnit: { id: '6-1', title: '馬丁格爾策略' }
 };

@@ -42,13 +42,13 @@ export const unitRBreaker: UnitDef = {
         <text x="440" y="210" fill="#ef4444" font-size="10" font-weight="bold" text-anchor="end">極限跌破 / 放空賣出線 (S3)</text>
 
         <!-- Price Play 1: Reversal (Fake breakout then dump) -->
-        <path d="M 0 110 Q 50 60 100 70 T 150 140 T 200 120" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="2,2" />
-        <circle cx="95" cy="72" r="5" fill="#f59e0b" />
+        <path class="svg-animated-path" d="M 0 110 Q 50 60 100 70 T 150 140 T 200 120" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="2,2" />
+        <circle class="svg-breathe" cx="95" cy="72" r="5" fill="#f59e0b" />
         <text x="95" y="60" fill="#f59e0b" font-size="9" text-anchor="middle">假突破 R2 後遇阻反轉放空</text>
         
         <!-- Price Play 2: True Breakout -->
-        <path d="M 200 120 Q 250 100 280 40 T 360 10 T 450 -10" fill="none" stroke="#22c55e" stroke-width="3" />
-        <circle cx="270" cy="55" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <path class="svg-animated-path" d="M 200 120 Q 250 100 280 40 T 360 10 T 450 -10" fill="none" stroke="#22c55e" stroke-width="3" />
+        <circle class="svg-breathe" cx="270" cy="55" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <text x="270" y="42" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 3px rgba(0,0,0,0.8);">真突破 R3 追多！</text>
       </svg>
     </div>

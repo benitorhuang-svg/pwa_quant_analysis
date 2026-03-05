@@ -3,13 +3,13 @@ import { Chart } from 'chart.js';
 import { renderEquityCurve } from '../engine/chart-renderer';
 
 export const unitArbitrage: UnitDef = {
-    title: '期貨跨期套利實戰',
-    module: '模組五 · 高級交易與套利',
-    difficulty: '進階',
-    description: '套利不關注單邊漲跌，而是關注兩份合約之間的「價差 (Spread)」。當價差偏離正常範圍時，買入低估項、賣出高估項。',
-    needsData: true,
+  title: '期貨跨期套利實戰',
+  module: '模組五 · 高級交易與套利',
+  difficulty: '進階',
+  description: '套利不關注單邊漲跌，而是關注兩份合約之間的「價差 (Spread)」。當價差偏離正常範圍時，買入低估項、賣出高估項。',
+  needsData: true,
 
-    theory: `
+  theory: `
     <p><strong>跨期套利 / 統計套利 (Pairs Trading / Arbitrage)</strong> 是機構與避險基金最喜歡的「低風險量化模型」。它的核心在於找出兩個極度相關的資產（例如台指期 6月合約與 7月合約，或是可口可樂與百事可樂的股票）。</p>
     
     <div style="margin: 24px 0; background: var(--bg-hover); border-radius: var(--radius-lg); padding: 20px; text-align: center; border: 1px solid var(--border-subtle);">
@@ -25,7 +25,7 @@ export const unitArbitrage: UnitDef = {
         <rect x="0" y="70" width="450" height="80" fill="rgba(148, 163, 184, 0.1)" />
         
         <!-- Spread Trajectory -->
-        <path d="M 0 110 Q 30 150 60 110 T 120 40 T 180 110 T 240 180 T 300 110 T 360 80 T 450 110" fill="none" stroke="#f59e0b" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 0 110 Q 30 150 60 110 T 120 40 T 180 110 T 240 180 T 300 110 T 360 80 T 450 110" fill="none" stroke="#f59e0b" stroke-width="2.5" />
         
         <!-- Mean Line -->
         <line x1="0" y1="110" x2="450" y2="110" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4" />
@@ -35,7 +35,7 @@ export const unitArbitrage: UnitDef = {
         <line x1="0" y1="70" x2="450" y2="70" stroke="#ef4444" stroke-width="1.5" />
         <text x="440" y="65" fill="#ef4444" font-size="10" text-anchor="end">高估線 (+2個標準差)</text>
         
-        <circle cx="120" cy="40" r="5" fill="#ef4444" />
+        <circle class="svg-breathe" cx="120" cy="40" r="5" fill="#ef4444" />
         <text x="120" y="30" fill="#ef4444" font-size="10" font-weight="bold" text-anchor="middle">價差過大！(放空A, 買進B)</text>
         <path d="M 120 40 L 120 110" fill="none" stroke="#ef4444" stroke-width="1" stroke-dasharray="2,2" />
 
@@ -43,15 +43,15 @@ export const unitArbitrage: UnitDef = {
         <line x1="0" y1="150" x2="450" y2="150" stroke="#22c55e" stroke-width="1.5" />
         <text x="440" y="165" fill="#22c55e" font-size="10" text-anchor="end">低估線 (-2個標準差)</text>
         
-        <circle cx="240" cy="180" r="5" fill="#22c55e" />
+        <circle class="svg-breathe" cx="240" cy="180" r="5" fill="#22c55e" />
         <text x="240" y="200" fill="#22c55e" font-size="10" font-weight="bold" text-anchor="middle">價差過小！(買進A, 放空B)</text>
         <path d="M 240 180 L 240 110" fill="none" stroke="#22c55e" stroke-width="1" stroke-dasharray="2,2" />
 
         <!-- Return to Mean Signal -->
-        <circle cx="150" cy="110" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="150" cy="110" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <text x="150" y="130" fill="#facc15" font-size="10" font-weight="bold" text-anchor="middle">均值回歸 (雙腿平倉獲利)</text>
         
-        <circle cx="270" cy="110" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="270" cy="110" r="6" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <text x="270" y="95" fill="#facc15" font-size="10" font-weight="bold" text-anchor="middle">均值回歸 (雙腿平倉獲利)</text>
       </svg>
     </div>
@@ -70,7 +70,7 @@ export const unitArbitrage: UnitDef = {
     </div>
   `,
 
-    defaultCode: `import json
+  defaultCode: `import json
 import numpy as np
 from backtest_engine import BacktestEngine
 
@@ -122,48 +122,48 @@ chart_data = {
 }
 `,
 
-    resultVar: 'chart_data',
+  resultVar: 'chart_data',
 
-    renderChart: (canvasId, data) => {
-        const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
-        if (!parent) return;
+  renderChart: (canvasId, data) => {
+    const parent = document.getElementById(canvasId)?.parentElement?.parentElement;
+    if (!parent) return;
 
-        const spreadId = canvasId + '-spread';
-        const equityId = canvasId + '-equity';
-        parent.innerHTML = `
+    const spreadId = canvasId + '-spread';
+    const equityId = canvasId + '-equity';
+    parent.innerHTML = `
       <div class="chart-wrapper" style="height:250px; margin-bottom:12px;"><canvas id="${spreadId}"></canvas></div>
       <div class="chart-wrapper" style="height:250px;"><canvas id="${equityId}"></canvas></div>
     `;
 
-        renderEquityCurve(equityId, data);
-        const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
+    renderEquityCurve(equityId, data);
+    const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
 
-        // Spread Chart
-        new Chart(document.getElementById(spreadId) as HTMLCanvasElement, {
-            type: 'line',
-            data: {
-                labels,
-                datasets: [
-                    { label: '合約價差 (Spread)', data: data.spread, borderColor: '#a855f7', borderWidth: 2, pointRadius: 0 },
-                    { label: '均值線', data: new Array(data.spread.length).fill(data.mean), borderColor: '#ffffff44', borderDash: [2, 2], pointRadius: 0 }
-                ]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { title: { display: true, text: '套利價差走勢 (模擬)', color: '#fff' } }
-            }
-        });
-    },
+    // Spread Chart
+    new Chart(document.getElementById(spreadId) as HTMLCanvasElement, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: '合約價差 (Spread)', data: data.spread, borderColor: '#a855f7', borderWidth: 2, pointRadius: 0 },
+          { label: '均值線', data: new Array(data.spread.length).fill(data.mean), borderColor: '#ffffff44', borderDash: [2, 2], pointRadius: 0 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { title: { display: true, text: '套利價差走勢 (模擬)', color: '#fff' } }
+      }
+    });
+  },
 
-    params: [
-        { id: 'STD_MULTIPLIER', label: '標準差倍數', min: 1.0, max: 3.0, step: 0.1, default: 1.5, format: v => `${v} 倍` }
-    ],
+  params: [
+    { id: 'STD_MULTIPLIER', label: '標準差倍數', min: 1.0, max: 3.0, step: 0.1, default: 1.5, format: v => `${v} 倍` }
+  ],
 
-    exercises: [
-        '目前的邏輯是價差低於 1.5 倍標準差買入。如果標準差倍數調高（例如 2.5），訊號會變得更準確還是更稀少？',
-        '思考：為什麼套利需要兩個「高度相關」的資產？如果兩者相關性斷裂（如 A 退市或 B 出事），會發生什麼？'
-    ],
+  exercises: [
+    '目前的邏輯是價差低於 1.5 倍標準差買入。如果標準差倍數調高（例如 2.5），訊號會變得更準確還是更稀少？',
+    '思考：為什麼套利需要兩個「高度相關」的資產？如果兩者相關性斷裂（如 A 退市或 B 出事），會發生什麼？'
+  ],
 
-    prevUnit: { id: '4-1', title: '經典恆溫器策略' },
-    nextUnit: { id: '5-2', title: '乖離率 BIAS' }
+  prevUnit: { id: '4-1', title: '經典恆溫器策略' },
+  nextUnit: { id: '5-2', title: '乖離率 BIAS' }
 };

@@ -22,25 +22,25 @@ export const unitBias: UnitDef = {
         </g>
         
         <!-- Moving Average (Center Gravity) -->
-        <path d="M 0 100 Q 150 120 450 100" fill="none" stroke="#facc15" stroke-width="3" />
+        <path class="svg-animated-path" d="M 0 100 Q 150 120 450 100" fill="none" stroke="#facc15" stroke-width="3" />
         <text x="440" y="95" fill="#facc15" font-size="11" font-weight="bold" text-anchor="end">移動平均線 (市場引力中心)</text>
 
         <!-- Price Path (Rubber band snapping) -->
-        <path d="M 0 100 Q 50 20 100 80 T 200 180 T 300 80 T 380 40 T 450 100" fill="none" stroke="#cbd5e1" stroke-width="2" />
+        <path class="svg-animated-path" d="M 0 100 Q 50 20 100 80 T 200 180 T 300 80 T 380 40 T 450 100" fill="none" stroke="#cbd5e1" stroke-width="2" />
         
         <!-- Overbought Area (Positive BIAS) -->
         <line x1="65" y1="105" x2="65" y2="45" stroke="#ef4444" stroke-width="2" stroke-dasharray="2,2" />
         <text x="65" y="35" fill="#ef4444" font-size="10" font-weight="bold" text-anchor="middle">正乖離過大 (+BIAS)</text>
-        <circle cx="65" cy="45" r="4" fill="#ef4444" />
+        <circle class="svg-breathe" cx="65" cy="45" r="4" fill="#ef4444" />
         <text x="65" y="22" fill="#ef4444" font-size="9" text-anchor="middle">漲多必跌 (賣出)</text>
 
         <line x1="380" y1="102" x2="380" y2="40" stroke="#ef4444" stroke-width="2" stroke-dasharray="2,2" />
-        <circle cx="380" cy="40" r="4" fill="#ef4444" />
+        <circle class="svg-breathe" cx="380" cy="40" r="4" fill="#ef4444" />
 
         <!-- Oversold Area (Negative BIAS) -->
         <line x1="200" y1="108" x2="200" y2="180" stroke="#22c55e" stroke-width="2" stroke-dasharray="2,2" />
         <text x="200" y="195" fill="#22c55e" font-size="10" font-weight="bold" text-anchor="middle">負乖離過大 (-BIAS)</text>
-        <circle cx="200" cy="180" r="4" fill="#22c55e" />
+        <circle class="svg-breathe" cx="200" cy="180" r="4" fill="#22c55e" />
         <text x="200" y="210" fill="#22c55e" font-size="9" text-anchor="middle">跌深必彈 (買進)</text>
       </svg>
     </div>

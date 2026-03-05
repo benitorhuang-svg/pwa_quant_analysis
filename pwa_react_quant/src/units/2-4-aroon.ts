@@ -29,20 +29,20 @@ export const unitAroon: UnitDef = {
         <text x="440" y="15" fill="#64748b" font-size="9" text-anchor="end">100分頂線</text>
         
         <!-- Aroon Down Line - Red -->
-        <path d="M 0 30 Q 80 80 120 130 T 180 140 T 260 80 T 360 40 T 450 20" fill="none" stroke="#ef4444" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 0 30 Q 80 80 120 130 T 180 140 T 260 80 T 360 40 T 450 20" fill="none" stroke="#ef4444" stroke-width="2.5" />
         
         <!-- Aroon Up Line - Green -->
-        <path d="M 0 130 Q 80 100 120 40 T 180 20 T 260 60 T 360 100 T 450 140" fill="none" stroke="#22c55e" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 0 130 Q 80 100 120 40 T 180 20 T 260 60 T 360 100 T 450 140" fill="none" stroke="#22c55e" stroke-width="2.5" />
         
         <!-- Trend Start Area -->
-        <circle cx="120" cy="85" r="5" fill="#facc15" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="120" cy="85" r="5" fill="#facc15" stroke="#0f172a" stroke-width="2" />
         <rect x="150" y="40" width="130" height="90" fill="none" stroke="#facc15" stroke-width="1" stroke-dasharray="4,4" rx="4" />
         <text x="215" y="80" fill="#facc15" font-size="11" font-weight="bold" text-anchor="middle">多頭黎明 (向上大交叉)</text>
         <text x="215" y="100" fill="#22c55e" font-size="10" font-weight="bold" text-anchor="middle">Up 頂撞 100 分天花板</text>
         <text x="215" y="115" fill="#ef4444" font-size="10" font-weight="bold" text-anchor="middle">Down 躺平 0 分地板</text>
 
         <!-- Down Trend Start -->
-        <circle cx="340" cy="70" r="5" fill="#06b6d4" stroke="#0f172a" stroke-width="2" />
+        <circle class="svg-breathe" cx="340" cy="70" r="5" fill="#06b6d4" stroke="#0f172a" stroke-width="2" />
         <text x="340" y="55" fill="#06b6d4" font-size="11" font-weight="bold" text-anchor="middle">空頭反撲 (向下交叉)</text>
 
         <!-- Legend -->

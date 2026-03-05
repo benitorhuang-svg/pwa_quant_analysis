@@ -23,13 +23,13 @@ export const unitAma: UnitDef = {
         </g>
         
         <!-- Price Line Oscillating then trending -->
-        <path d="M 0 100 Q 30 60 60 110 T 120 70 T 180 120 T 240 80 T 280 140 Q 320 80 360 40 T 450 10" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="2,2" />
+        <path class="svg-animated-path" d="M 0 100 Q 30 60 60 110 T 120 70 T 180 120 T 240 80 T 280 140 Q 320 80 360 40 T 450 10" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="2,2" />
         
         <!-- Standard Fast MA (Cyan) - Gets whipped around -->
-        <path d="M 0 100 Q 35 65 65 110 T 125 75 T 185 120 T 245 85 T 285 135 Q 325 85 365 45 T 450 15" fill="none" stroke="rgba(6, 182, 212, 0.4)" stroke-width="1.5" />
+        <path class="svg-animated-path" d="M 0 100 Q 35 65 65 110 T 125 75 T 185 120 T 245 85 T 285 135 Q 325 85 365 45 T 450 15" fill="none" stroke="rgba(6, 182, 212, 0.4)" stroke-width="1.5" />
         
         <!-- AMA Line (Purple) - Flattens out during chop, catches the trend -->
-        <path d="M 0 95 Q 120 100 240 100 Q 280 100 320 80 Q 360 50 450 20" fill="none" stroke="#a855f7" stroke-width="3" />
+        <path class="svg-animated-path" d="M 0 95 Q 120 100 240 100 Q 280 100 320 80 Q 360 50 450 20" fill="none" stroke="#a855f7" stroke-width="3" />
         
         <!-- Annotations -->
         <!-- Chop Zone -->

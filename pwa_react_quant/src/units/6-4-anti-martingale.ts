@@ -3,13 +3,13 @@ import { Chart } from 'chart.js';
 import { renderEquityCurve } from '../engine/chart-renderer';
 
 export const unitAntiMartingale: UnitDef = {
-    title: '反向馬丁格爾 (逆勢倍增法)',
-    module: '模組六 · 風險與資金管理',
-    difficulty: '進階',
-    description: '與馬丁格爾相反，只在獲利時增加注碼。旨在捕捉大趨勢，並在震盪時保護資本 (即「順勢加倉，逆勢止損」)。',
-    needsData: true,
+  title: '反向馬丁格爾 (逆勢倍增法)',
+  module: '模組六 · 風險與資金管理',
+  difficulty: '進階',
+  description: '與馬丁格爾相反，只在獲利時增加注碼。旨在捕捉大趨勢，並在震盪時保護資本 (即「順勢加倉，逆勢止損」)。',
+  needsData: true,
 
-    theory: `
+  theory: `
     <p><strong>反向馬丁格爾 (Anti-Martingale)</strong> 被許多專業的順勢交易員（如海龜交易員）稱為「資金管理的聖杯」。因為它完美契合了交易界的最強金律：<strong>「截斷虧損，讓獲利奔跑。」</strong></p>
 
     <div style="margin: 24px 0; background: var(--bg-hover); border-radius: var(--radius-lg); padding: 20px; text-align: center; border: 1px solid var(--border-subtle);">
@@ -22,7 +22,7 @@ export const unitAntiMartingale: UnitDef = {
         </g>
         
         <!-- Price Path Upwards (Trend) -->
-        <path d="M 0 160 L 100 120 L 200 80 L 300 40" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="2,2" />
+        <path class="svg-animated-path" d="M 0 160 L 100 120 L 200 80 L 300 40" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="2,2" />
         <text x="310" y="35" fill="#22c55e" font-size="10" text-anchor="start">資產價格連續上漲 (大趨勢)</text>
 
         <!-- Step 1: 1x Position (Initial) -->
@@ -41,13 +41,13 @@ export const unitAntiMartingale: UnitDef = {
         <line x1="300" y1="40" x2="450" y2="40" stroke="#06b6d4" stroke-width="0.5" stroke-dasharray="2,2" />
 
         <!-- Average Cost Line (Pulled up, but controlled) -->
-        <path d="M 100 120 L 200 93.3 L 300 62.8" fill="none" stroke="#facc15" stroke-width="2.5" />
+        <path class="svg-animated-path" d="M 100 120 L 200 93.3 L 300 62.8" fill="none" stroke="#facc15" stroke-width="2.5" />
         <circle cx="300" cy="62.8" r="4" fill="#facc15" />
         <text x="310" y="60" fill="#facc15" font-size="10" font-weight="bold" text-anchor="start">均價緩步墊高 (仍低於市價)</text>
 
         <!-- Danger Scenario: Reversal -->
-        <path d="M 300 40 Q 330 60 360 100" fill="none" stroke="#ef4444" stroke-width="2.5" />
-        <circle cx="360" cy="100" r="5" fill="#ef4444" stroke="#0f172a" stroke-width="2" />
+        <path class="svg-animated-path" d="M 300 40 Q 330 60 360 100" fill="none" stroke="#ef4444" stroke-width="2.5" />
+        <circle class="svg-breathe" cx="360" cy="100" r="5" fill="#ef4444" stroke="#0f172a" stroke-width="2" />
         <text x="360" y="118" fill="#ef4444" font-size="11" font-weight="bold" text-anchor="middle" style="text-shadow: 0 1px 2px rgba(0,0,0,0.8);">趨勢反轉！觸碰到動態停損</text>
         
         <!-- Safety Net -->
@@ -69,7 +69,7 @@ export const unitAntiMartingale: UnitDef = {
     </div>
   `,
 
-    defaultCode: `import json
+  defaultCode: `import json
 import numpy as np
 from backtest_engine import BacktestEngine
 
@@ -125,23 +125,23 @@ print(f"總報酬率: {report['total_return']:+.2f}%")
 chart_data = report
 `,
 
-    resultVar: 'chart_data',
+  resultVar: 'chart_data',
 
-    renderChart: (canvasId, data) => {
-        renderEquityCurve(canvasId, data);
-    },
+  renderChart: (canvasId, data) => {
+    renderEquityCurve(canvasId, data);
+  },
 
-    params: [
-        { id: 'BASE_PCT', label: '首注比例', min: 0.01, max: 0.2, step: 0.01, default: 0.05, format: v => `${(v * 100).toFixed(0)}%` },
-        { id: 'WIN_STEP', label: '獲利加碼點', min: 1, max: 10, step: 1, default: 3, format: v => `${v}%` },
-        { id: 'MAX_LAYERS', label: '最大加碼次數', min: 1, max: 10, step: 1, default: 3, format: v => `${v} 次` }
-    ],
+  params: [
+    { id: 'BASE_PCT', label: '首注比例', min: 0.01, max: 0.2, step: 0.01, default: 0.05, format: v => `${(v * 100).toFixed(0)}%` },
+    { id: 'WIN_STEP', label: '獲利加碼點', min: 1, max: 10, step: 1, default: 3, format: v => `${v}%` },
+    { id: 'MAX_LAYERS', label: '最大加碼次數', min: 1, max: 10, step: 1, default: 3, format: v => `${v} 次` }
+  ],
 
-    exercises: [
-        '當你在上漲趨勢中持續加碼，為什麼你的平均持倉成本也會跟著拉高？這對接下來的回檔風險有什麼影響？',
-        '嘗試思考：這種策略在什麼樣的市場環境下（趨勢、震盪、尖峰）表現最差？'
-    ],
+  exercises: [
+    '當你在上漲趨勢中持續加碼，為什麼你的平均持倉成本也會跟著拉高？這對接下來的回檔風險有什麼影響？',
+    '嘗試思考：這種策略在什麼樣的市場環境下（趨勢、震盪、尖峰）表現最差？'
+  ],
 
-    prevUnit: { id: '6-2', title: '凱利公式' },
-    nextUnit: { id: '7-1', title: '基本面量化實踐' }
+  prevUnit: { id: '6-2', title: '凱利公式' },
+  nextUnit: { id: '7-1', title: '基本面量化實踐' }
 };
