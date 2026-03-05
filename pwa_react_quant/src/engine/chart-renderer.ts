@@ -7,7 +7,9 @@ Chart.register(...registerables);
 const C = {
     green: '#22c55e', red: '#ef4444', cyan: '#06b6d4', blue: '#60a5fa',
     amber: '#fbbf24', purple: '#a855f7', white: '#e2e8f0', muted: '#64748b',
-    grid: 'rgba(148,163,184,0.08)', cyanA: 'rgba(6,182,212,0.1)'
+    grid: 'rgba(148,163,184,0.08)', cyanA: 'rgba(6,182,212,0.1)',
+    benchmark: 'rgba(148,163,184,0.4)',
+    redA: 'rgba(239, 68, 68, 0.2)', greenA: 'rgba(34, 197, 94, 0.2)'
 };
 
 const charts: Record<string, Chart> = {};
@@ -92,7 +94,7 @@ export function renderEquityCurve(canvasId: string, data: any): void {
     const ctx = document.getElementById(canvasId) as HTMLCanvasElement | null;
     if (!ctx) return;
 
-    const { equity_curve, dates, trades, initial_capital } = data;
+    const { equity_curve, dates, trades, initial_capital, closes } = data;
     const labels = dates.map((d: string, i: number) => i % Math.ceil(dates.length / 30) === 0 ? d : '');
     const buy = new Array(equity_curve.length).fill(null);
     const sell = new Array(equity_curve.length).fill(null);
@@ -108,26 +110,42 @@ export function renderEquityCurve(canvasId: string, data: any): void {
         else if (t.type === 'COVER') cover[idx] = equity_curve[idx];
     });
 
+    // Benchmark calculation (Buy & Hold)
+    let benchmark: number[] | null = null;
+    if (closes && closes.length > 0 && closes[0] !== 0) {
+        const firstPrice = closes[0];
+        benchmark = closes.map((p: number) => (p / firstPrice) * initial_capital);
+    }
+
+    const datasets: any[] = [
+        { label: '策略資金', data: equity_curve, borderColor: C.cyan, backgroundColor: C.cyanA, fill: true, borderWidth: 2, pointRadius: 0, tension: 0.3 },
+    ];
+
+    if (benchmark) {
+        datasets.push({ label: '基準收益 (B&H)', data: benchmark, borderColor: C.benchmark, borderWidth: 1.5, pointRadius: 0, tension: 0.1, fill: false });
+    }
+
+    datasets.push(
+        { label: '初始資金', data: Array(equity_curve.length).fill(initial_capital), borderColor: C.muted, borderDash: [5, 5], borderWidth: 1, pointRadius: 0, fill: false },
+        // @ts-ignore
+        { label: '買入 ▲', data: buy, reasons: reasons, borderColor: C.green, backgroundColor: C.green, pointRadius: 6, pointStyle: 'triangle' as const, showLine: false },
+        // @ts-ignore
+        { label: '賣出 ▼', data: sell, reasons: reasons, borderColor: C.red, backgroundColor: C.red, pointRadius: 6, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
+        // @ts-ignore
+        { label: '賣空 ▼', data: short, reasons: reasons, borderColor: C.amber, backgroundColor: C.amber, pointRadius: 6, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
+        // @ts-ignore
+        { label: '平空 ▲', data: cover, reasons: reasons, borderColor: C.blue, backgroundColor: C.blue, pointRadius: 6, pointStyle: 'triangle' as const, showLine: false }
+    );
+
     charts[canvasId] = new Chart(ctx, {
         type: 'line',
         data: {
             labels,
-            datasets: [
-                { label: '資金曲線', data: equity_curve, borderColor: C.cyan, backgroundColor: C.cyanA, fill: true, borderWidth: 2, pointRadius: 0, tension: 0.3 },
-                { label: '初始資金', data: Array(equity_curve.length).fill(initial_capital), borderColor: C.muted, borderDash: [5, 5], borderWidth: 1, pointRadius: 0, fill: false },
-                // @ts-ignore
-                { label: '買入 ▲', data: buy, reasons: reasons, borderColor: C.green, backgroundColor: C.green, pointRadius: 6, pointStyle: 'triangle' as const, showLine: false },
-                // @ts-ignore
-                { label: '賣出 ▼', data: sell, reasons: reasons, borderColor: C.red, backgroundColor: C.red, pointRadius: 6, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
-                // @ts-ignore
-                { label: '賣空 ▼', data: short, reasons: reasons, borderColor: C.amber, backgroundColor: C.amber, pointRadius: 6, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
-                // @ts-ignore
-                { label: '平空 ▲', data: cover, reasons: reasons, borderColor: C.blue, backgroundColor: C.blue, pointRadius: 6, pointStyle: 'triangle' as const, showLine: false }
-            ]
+            datasets
         },
         options: {
             ...baseOpts,
-            plugins: { ...baseOpts.plugins, title: { display: true, text: '📈 資金曲線', color: C.white, font: { family: "'Noto Sans TC'", size: 14, weight: 'bold' as const }, padding: { bottom: 16 } } }
+            plugins: { ...baseOpts.plugins, title: { display: true, text: '📈 資金曲線與基準對照', color: C.white, font: { family: "'Noto Sans TC'", size: 14, weight: 'bold' as const }, padding: { bottom: 16 } } }
         }
     });
 }
@@ -241,6 +259,76 @@ export function renderVolumeChart(canvasId: string, data: any): void {
                 ...baseOpts.scales,
                 y: { display: true, grid: { display: false }, ticks: { display: false } }
             }
+        }
+    });
+}
+
+export function renderUnderwaterChart(canvasId: string, data: any): void {
+    destroy(canvasId);
+    const ctx = document.getElementById(canvasId) as HTMLCanvasElement | null;
+    if (!ctx) return;
+
+    const { drawdown_series, dates } = data;
+    const labels = dates.map((d: string, i: number) => i % Math.ceil(dates.length / 30) === 0 ? d : '');
+
+    charts[canvasId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: '回撤深度 (%)',
+                data: drawdown_series.map((v: number) => -v),
+                borderColor: C.red,
+                backgroundColor: C.redA,
+                fill: true,
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.2
+            }]
+        },
+        options: {
+            ...baseOpts,
+            plugins: { ...baseOpts.plugins, title: { display: true, text: '🔻 回撤壓力圖 (Underwater Chart)', color: C.red, font: { size: 12 } } },
+            scales: {
+                ...baseOpts.scales,
+                y: { ...baseOpts.scales.y, ticks: { ...baseOpts.scales.y.ticks, callback: (v: any) => v + '%' } }
+            }
+        }
+    });
+}
+
+export function renderDistributionChart(canvasId: string, data: any): void {
+    destroy(canvasId);
+    const ctx = document.getElementById(canvasId) as HTMLCanvasElement | null;
+    if (!ctx) return;
+
+    const { wins, losses } = data;
+    // Simple histogram-like grouping
+    const bins: Record<string, number> = {};
+    const all = [...wins, ...losses];
+    all.forEach(p => {
+        const bin = Math.floor(p / 1) * 1; // 1% bins
+        const label = `${bin}% ~ ${bin + 1}%`;
+        bins[label] = (bins[label] || 0) + 1;
+    });
+
+    const sortedLabels = Object.keys(bins).sort((a, b) => parseFloat(a) - parseFloat(b));
+
+    charts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedLabels,
+            datasets: [{
+                label: '成交次數',
+                data: sortedLabels.map(l => bins[l]),
+                backgroundColor: sortedLabels.map(l => parseFloat(l) >= 0 ? 'rgba(34, 197, 94, 0.5)' : 'rgba(239, 68, 68, 0.5)'),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            ...baseOpts,
+            plugins: { ...baseOpts.plugins, title: { display: true, text: '📊 盈虧分佈 (Win/Loss Distribution)', color: C.white, font: { size: 12 } }, legend: { display: false } },
+            scales: { ...baseOpts.scales, x: { ...baseOpts.scales.x, grid: { display: false } } }
         }
     });
 }

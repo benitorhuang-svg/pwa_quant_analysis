@@ -180,6 +180,9 @@ class BacktestEngine:
         final_capital = self.equity_curve[-1]
         total_return = (final_capital - self.initial_capital) / self.initial_capital * 100
         
+        # 基準線 (Buy & Hold) 報酬率
+        bh_return = (self.closes[-1] - self.closes[0]) / self.closes[0] * 100 if len(self.closes) > 0 else 0
+        
         # 最大回撤
         peak = np.maximum.accumulate(self.equity_curve)
         drawdown_flat = (peak - self.equity_curve) / peak * 100
@@ -199,10 +202,23 @@ class BacktestEngine:
         sharpe = (avg_ret / std * np.sqrt(252)) if std > 0 else 0
         calmar = (total_return / max_drawdown) if max_drawdown > 0 else 0
         
-        # 獲利因子 (Profit Factor)
+        # 獲利因子 (Profit Factor) & 盈虧比 (Payoff Ratio)
         gross_profits = sum(t.get('profit_pct', 0) for t in closed_trades if t.get('profit_pct', 0) > 0)
         gross_losses = abs(sum(t.get('profit_pct', 0) for t in closed_trades if t.get('profit_pct', 0) < 0))
         profit_factor = (gross_profits / gross_losses) if gross_losses > 0 else (float('inf') if gross_profits > 0 else 0)
+
+        # 盈虧比 (Payoff Ratio)
+        win_count = len(win_trades)
+        loss_count = total_trades - win_count
+        avg_win = (gross_profits / win_count) if win_count > 0 else 0
+        avg_loss = (gross_losses / loss_count) if loss_count > 0 else 0
+        payoff_ratio = (avg_win / avg_loss) if avg_loss > 0 else (float('inf') if avg_win > 0 else 0)
+
+        # 期望值 (Expectancy)
+        expectancy = (win_rate/100 * avg_win) - ((1 - win_rate/100) * avg_loss)
+        
+        # 復原係數 (Recovery Factor)
+        recovery_factor = (total_return / max_drawdown) if max_drawdown > 0 else (float('inf') if total_return > 0 else 0)
 
         # 整理數值，確保可以 JSON 序列化 (處理 NaN 與 Inf)
         def s(val):
@@ -214,12 +230,35 @@ class BacktestEngine:
             "initial_capital": self.initial_capital,
             "final_capital": s(final_capital),
             "total_return": s(total_return),
+            "bh_return": s(bh_return),
             "max_drawdown": s(max_drawdown),
             "total_trades": total_trades,
             "win_rate": s(win_rate),
             "sharpe_ratio": s(sharpe),
             "calmar_ratio": s(calmar),
             "profit_factor": s(profit_factor) if profit_factor != float('inf') else "∞",
+            "payoff_ratio": s(payoff_ratio) if payoff_ratio != float('inf') else "∞",
+            "expectancy": s(expectancy),
+            "recovery_factor": s(recovery_factor) if recovery_factor != float('inf') else "∞",
+            "drawdown_series": [s(x) for x in drawdown_flat.tolist()],
+            "profit_distribution": {
+                "wins": [s(t.get('profit_pct', 0)) for t in win_trades],
+                "losses": [s(t.get('profit_pct', 0)) for t in closed_trades if t.get('profit_pct', 0) < 0]
+            },
+            "price_data": {
+                "closes": [s(x) for x in self.closes.tolist()],
+                "dates": self.dates
+            },
+            "volume_data": {
+                "volumes": [s(x) for x in self.volumes.tolist()] if self.volumes is not None else [],
+                "closes": [s(x) for x in self.closes.tolist()],
+                "dates": self.dates
+            },
+            # Allow custom indicators to be passed back if they exist in engine
+            "ma_data": {
+                "ma_short": [s(x) for x in self.ma_short.tolist()] if hasattr(self, 'ma_short') and self.ma_short is not None else [],
+                "ma_long": [s(x) for x in self.ma_long.tolist()] if hasattr(self, 'ma_long') and self.ma_long is not None else []
+            },
             "equity_curve": [s(x) for x in self.equity_curve.tolist()],
             "dates": self.dates,
             "trades": self.trades

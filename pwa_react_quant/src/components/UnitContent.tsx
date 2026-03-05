@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { UnitDef } from '../units/types';
 import { createEditor, getCode, setCode } from '../engine/editor';
+import { renderEquityCurve, renderPriceWithMA, renderVolumeChart, renderUnderwaterChart, renderDistributionChart } from '../engine/chart-renderer';
 import { runAndGetResult, setGlobal } from '../engine/pyodide-runner';
 import { loadStockData } from '../engine/data-loader';
 import katex from 'katex';
-import { BookOpen, BarChart3, Play, Copy, Terminal, Settings2, Square, X, Code2, Zap } from 'lucide-react';
+import { BookOpen, BarChart3, Play, Copy, Terminal, Settings2, Square, X, Code2, Zap, FileDown } from 'lucide-react';
 
 interface Props {
     unitId: string;
@@ -19,6 +20,10 @@ interface StrategyStats {
     total_trades: number;
     calmar_ratio: number;
     profit_factor: number | string;
+    payoff_ratio: number | string;
+    expectancy: number;
+    recovery_factor: number | string;
+    bh_return?: number;
     equity_curve: number[];
     dates: string[];
     trades: any[];
@@ -55,8 +60,49 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
     const [centerView, setCenterView] = useState<'theory' | 'result'>('theory');
     const [rightView, setRightView] = useState<'code' | 'terminal' | 'optimize'>('code');
     const [isOptimizing, setIsOptimizing] = useState(false);
+    const [optimizeProgress, setOptimizeProgress] = useState({ current: 0, total: 0 });
     const [scanResults, setScanResults] = useState<any[]>([]);
     const [scanParams, setScanParams] = useState<Record<string, { start: number, end: number, step: number, active: boolean }>>({});
+
+    const getStatClass = (val: number | string, type: 'sharpe' | 'calmar' | 'pf') => {
+        const num = typeof val === 'number' ? val : parseFloat(String(val));
+        if (isNaN(num)) return 'neutral';
+        if (type === 'sharpe') {
+            if (num > 1.5) return 'up';
+            if (num > 0.8) return 'accent';
+            return num < 0 ? 'down' : 'neutral';
+        }
+        if (type === 'pf') return num > 1.5 ? 'up' : num < 1 ? 'down' : 'neutral';
+        return num > 0 ? 'up' : 'down';
+    };
+
+    const handleExportCSV = () => {
+        if (!stats || !stats.trades.length) return;
+        const headers = ["Date", "Type", "Price", "Qty", "Profit%", "Reason"];
+        const rows = stats.trades.map(t => [
+            t.date, t.type, t.price, t.qty, t.profit_pct || 0, `"${t.reason || ''}"`
+        ]);
+        const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `trades_${unitId}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const downloadChart = (canvasId: string, filenamePrefix: string) => {
+        const canvas = document.getElementById(canvasId) as HTMLCanvasElement;
+        if (canvas) {
+            const link = document.createElement('a');
+            link.download = `${filenamePrefix}_${unitId}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    };
 
     useEffect(() => {
         if (editorRef.current) {
@@ -88,7 +134,17 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                 if (el.id === 'ma-formula') katex.render('MA(n) = \\frac{1}{n} \\sum_{i=1}^{n} C_i', el as HTMLElement, { displayMode: true, throwOnError: false });
             });
         }
-    }, [centerView, unitId]);
+        // Re-render charts if stats exist and view changes to result
+        if (centerView === 'result' && stats) {
+            setTimeout(() => {
+                renderEquityCurve('result-chart', stats);
+                if (stats.drawdown_series) renderUnderwaterChart('result-underwater-chart', stats);
+                if (stats.profit_distribution) renderDistributionChart('result-dist-chart', stats.profit_distribution);
+                if (stats.price_data) renderPriceWithMA('result-price-ma-chart', { ...(stats.price_data as any), ...(stats.ma_data as any), trades: stats.trades });
+                if (stats.volume_data) renderVolumeChart('result-volume-chart', stats.volume_data);
+            }, 100);
+        }
+    }, [centerView, unitId, stats]);
 
     const handleParamChange = (id: string, value: string) => {
         const val = parseFloat(value);
@@ -113,7 +169,11 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
             setStats(res.data as StrategyStats);
             setCenterView('result');
             setTimeout(() => {
-                unit.renderChart('result-chart', res.data as StrategyStats);
+                renderEquityCurve('result-chart', res.data as StrategyStats);
+                if (res.data.drawdown_series) renderUnderwaterChart('result-underwater-chart', res.data as StrategyStats);
+                if (res.data.profit_distribution) renderDistributionChart('result-dist-chart', res.data.profit_distribution);
+                if (res.data.price_data) renderPriceWithMA('result-price-ma-chart', { ...(res.data.price_data as any), ...(res.data.ma_data as any), trades: res.data.trades });
+                if (res.data.volume_data) renderVolumeChart('result-volume-chart', res.data.volume_data);
             }, 100);
         } else if (!res.success) {
             setOutputLogs(prev => [...prev, { text: 'ERROR: ' + (res.error || 'Execution failed'), type: 'error' }]);
@@ -162,7 +222,15 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
         }
 
         const results = [];
-        for (const combo of combinations) {
+        setOptimizeProgress({ current: 0, total: combinations.length });
+
+        for (let i = 0; i < combinations.length; i++) {
+            const combo = combinations[i];
+            setOptimizeProgress(prev => ({ ...prev, current: i + 1 }));
+
+            // Allow UI to breathe
+            if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+
             let trialCode = originalCode;
             Object.entries(combo).forEach(([id, val]) => {
                 trialCode = trialCode.replace(new RegExp(`(${id}\\s*=\\s*)([\\d.]+)`), `$1${val}`);
@@ -234,22 +302,42 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                 {/* Stat cards row */}
                 <div className="stat-cards-row" style={{ display: centerView === 'result' && stats ? 'grid' : 'none' }}>
                     <div className="stat-card-compact">
-                        <div className="stat-card-label">Returns</div>
+                        <div className="stat-card-label">Returns / Benchmark</div>
                         <div className={`stat-card-value ${(stats?.total_return ?? 0) >= 0 ? 'up' : 'down'}`}>
                             {(stats?.total_return ?? 0) >= 0 ? '+' : ''}{format4(stats?.total_return ?? 0)}%
                         </div>
+                        <div style={{ fontSize: '0.6rem', marginTop: '2px', opacity: 0.6 }}>
+                            B&H: {stats?.bh_return ? `${stats.bh_return > 0 ? '+' : ''}${format4(stats.bh_return)}%` : '-'}
+                        </div>
                     </div>
                     <div className="stat-card-compact">
-                        <div className="stat-card-label">Sharpe</div>
-                        <div className="stat-card-value neutral">{format4(stats?.sharpe_ratio ?? '-')}</div>
+                        <div className="stat-card-label">Sharpe Ratio</div>
+                        <div className={`stat-card-value ${getStatClass(stats?.sharpe_ratio ?? 0, 'sharpe')}`}>
+                            {format4(stats?.sharpe_ratio ?? '-')}
+                        </div>
                     </div>
                     <div className="stat-card-compact">
-                        <div className="stat-card-label">Calmar</div>
-                        <div className="stat-card-value neutral">{format4(stats?.calmar_ratio ?? '-')}</div>
+                        <div className="stat-card-label">Calmar Ratio</div>
+                        <div className={`stat-card-value ${getStatClass(stats?.calmar_ratio ?? 0, 'calmar')}`}>
+                            {format4(stats?.calmar_ratio ?? '-')}
+                        </div>
                     </div>
                     <div className="stat-card-compact">
                         <div className="stat-card-label">Profit Factor</div>
-                        <div className="stat-card-value neutral">{format4(stats?.profit_factor ?? '-')}</div>
+                        <div className={`stat-card-value ${getStatClass(stats?.profit_factor ?? 0, 'pf')}`}>
+                            {format4(stats?.profit_factor ?? '-')}
+                        </div>
+                    </div>
+                    <div className="stat-card-compact">
+                        <div className="stat-card-label">Payoff / Expectancy</div>
+                        <div className="stat-card-value neutral">{format4(stats?.payoff_ratio ?? '-')}</div>
+                        <div style={{ fontSize: '0.6rem', marginTop: '2px', opacity: 0.6 }}>
+                            E: {format4(stats?.expectancy ?? 0)}
+                        </div>
+                    </div>
+                    <div className="stat-card-compact">
+                        <div className="stat-card-label">Recovery Factor</div>
+                        <div className="stat-card-value accent">{format4(stats?.recovery_factor ?? '-')}</div>
                     </div>
                     <div className="stat-card-compact">
                         <div className="stat-card-label">Win Rate</div>
@@ -288,24 +376,59 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                     <div className={`results-scroll ${centerView === 'result' ? 'active-view' : 'hidden-view'}`}>
                         {stats ? (
                             <>
-                                <div className="chart-container">
+                                <div className="chart-container" style={{ minHeight: '400px' }}>
                                     <div className="chart-actions">
-                                        <button className="btn-chart-download" onClick={() => {
-                                            const canvas = document.getElementById('result-chart') as HTMLCanvasElement;
-                                            if (canvas) {
-                                                const link = document.createElement('a');
-                                                link.download = `backtest_${unitId}.png`;
-                                                link.href = canvas.toDataURL('image/png');
-                                                link.click();
-                                            }
-                                        }}>
-                                            <Copy size={11} /> 下載圖表 PNG
+                                        <button className="btn-chart-download" onClick={() => downloadChart('result-chart', 'equity')}>
+                                            <FileDown size={11} /> 下載圖表
                                         </button>
                                     </div>
                                     <canvas id="result-chart" style={{ width: '100%', height: '100%' }} />
                                 </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div className="chart-container" style={{ minHeight: '220px' }}>
+                                        <div className="chart-actions">
+                                            <button className="btn-chart-download" onClick={() => downloadChart('result-underwater-chart', 'drawdown')}>
+                                                <FileDown size={11} /> 下載圖表
+                                            </button>
+                                        </div>
+                                        <canvas id="result-underwater-chart" style={{ width: '100%', height: '100%' }} />
+                                    </div>
+                                    <div className="chart-container" style={{ minHeight: '220px' }}>
+                                        <div className="chart-actions">
+                                            <button className="btn-chart-download" onClick={() => downloadChart('result-dist-chart', 'profit_distribution')}>
+                                                <FileDown size={11} /> 下載圖表
+                                            </button>
+                                        </div>
+                                        <canvas id="result-dist-chart" style={{ width: '100%', height: '100%' }} />
+                                    </div>
+                                </div>
+
+                                <div className="chart-container" style={{ minHeight: '180px' }}>
+                                    <div className="chart-actions">
+                                        <button className="btn-chart-download" onClick={() => downloadChart('result-price-ma-chart', 'price_ma')}>
+                                            <FileDown size={11} /> 下載圖表
+                                        </button>
+                                    </div>
+                                    <canvas id="result-price-ma-chart" style={{ width: '100%', height: '100%' }} />
+                                </div>
+
+                                <div className="chart-container" style={{ minHeight: '180px' }}>
+                                    <div className="chart-actions">
+                                        <button className="btn-chart-download" onClick={() => downloadChart('result-volume-chart', 'volume')}>
+                                            <FileDown size={11} /> 下載圖表
+                                        </button>
+                                    </div>
+                                    <canvas id="result-volume-chart" style={{ width: '100%', height: '100%' }} />
+                                </div>
+
                                 <div className="section-card trade-list-section">
-                                    <h2 className="section-title"><Terminal size={14} /> 交易詳情記錄 (Trade History)</h2>
+                                    <div className="trade-history-header">
+                                        <h2 className="section-title"><Terminal size={14} /> 交易詳情記錄 (Trade History)</h2>
+                                        <button className="btn-chart-download" onClick={handleExportCSV}>
+                                            <FileDown size={11} /> 匯出 CSV 檔案
+                                        </button>
+                                    </div>
                                     <div className="trade-table-wrapper">
                                         <table className="trade-table">
                                             <thead>
@@ -466,35 +589,41 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                     )}
                 </div>
 
-                {/* Optimization View */}
+                {/* Optimization View — REDESIGNED */}
                 <div className={`optimize-view ${rightView === 'optimize' ? 'active-view' : 'hidden-view'}`}>
-                    <div className="section-card" style={{ padding: '14px' }}>
-                        <h3 className="section-title" style={{ fontSize: '0.62rem', marginBottom: '10px' }}>
-                            <Settings2 size={12} /> 掃描參數設定
-                        </h3>
-                        <div className="scan-config-list">
+                    <div className="section-card optimize-config-panel">
+                        <div className="optimize-header-row">
+                            <h3 className="section-title"><Zap size={13} /> 參數優化掃描 (Parameter Optimization)</h3>
+                            <p className="optimize-subtitle">選擇參數並設定區間，尋找最佳績效表現</p>
+                        </div>
+
+                        <div className="scan-config-grid">
                             {unit.params?.map(p => (
-                                <div key={p.id} className="scan-config-row">
-                                    <label className="scan-check">
-                                        <input
-                                            type="checkbox"
-                                            checked={scanParams[p.id]?.active ?? false}
-                                            onChange={e => setScanParams(prev => ({ ...prev, [p.id]: { ...prev[p.id], active: e.target.checked } }))}
-                                        />
-                                        <span>{p.label}</span>
-                                    </label>
+                                <div key={p.id} className={`scan-param-card ${scanParams[p.id]?.active ? 'active' : ''}`}>
+                                    <div className="param-card-header">
+                                        <label className="checkbox-wrapper">
+                                            <input
+                                                type="checkbox"
+                                                checked={scanParams[p.id]?.active ?? false}
+                                                onChange={e => setScanParams(prev => ({ ...prev, [p.id]: { ...prev[p.id], active: e.target.checked } }))}
+                                            />
+                                            <span className="param-name">{p.label}</span>
+                                        </label>
+                                        <span className="current-val-hint">Current: {params[p.id] ?? p.default}</span>
+                                    </div>
+
                                     {scanParams[p.id]?.active && (
-                                        <div className="scan-inputs">
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>Start</span>
+                                        <div className="param-inputs-row">
+                                            <div className="input-group">
+                                                <label>Start</label>
                                                 <input type="number" value={scanParams[p.id].start} onChange={e => setScanParams(prev => ({ ...prev, [p.id]: { ...prev[p.id], start: parseFloat(e.target.value) } }))} />
                                             </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>End</span>
+                                            <div className="input-group">
+                                                <label>End</label>
                                                 <input type="number" value={scanParams[p.id].end} onChange={e => setScanParams(prev => ({ ...prev, [p.id]: { ...prev[p.id], end: parseFloat(e.target.value) } }))} />
                                             </div>
-                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>Step</span>
+                                            <div className="input-group">
+                                                <label>Step</label>
                                                 <input type="number" value={scanParams[p.id].step} onChange={e => setScanParams(prev => ({ ...prev, [p.id]: { ...prev[p.id], step: parseFloat(e.target.value) } }))} />
                                             </div>
                                         </div>
@@ -502,9 +631,27 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                                 </div>
                             ))}
                         </div>
-                        <button className="btn-execute" style={{ width: '100%', marginTop: '12px' }} onClick={handleOptimize} disabled={isOptimizing}>
-                            {isOptimizing ? '優化計算中...' : '開始參數優化掃描'}
-                        </button>
+
+                        <div className="optimize-action-area">
+                            <button className="btn-execute btn-big-glow" onClick={handleOptimize} disabled={isOptimizing}>
+                                {isOptimizing ? (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span className="spinner-dots"></span>
+                                        計算中... ({optimizeProgress.current}/{optimizeProgress.total})
+                                    </div>
+                                ) : (
+                                    <><Zap size={14} fill="currentColor" /> 開始暴力掃描參數</>
+                                )}
+                            </button>
+                            {isOptimizing && (
+                                <div className="optimize-progress-wrapper">
+                                    <div className="progress-bar-bg">
+                                        <div className="progress-bar-fill" style={{ width: `${(optimizeProgress.current / optimizeProgress.total) * 100}%` }} />
+                                    </div>
+                                    <span className="progress-pct">{Math.round((optimizeProgress.current / optimizeProgress.total) * 100)}%</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {scanResults.length > 0 && (
