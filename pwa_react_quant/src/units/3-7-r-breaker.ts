@@ -29,6 +29,9 @@ export const unitRBreaker: UnitDef = {
 import numpy as np
 from backtest_engine import BacktestEngine
 
+# ═══ 策略參數 ═══
+MULTIPLIER = 2.0  # 突破價位乘數
+
 # 準備數據
 data = stock_data
 closes = [d['Close'] for d in data]
@@ -47,8 +50,8 @@ def strategy(engine, data, i):
     
     pivot = (h + l + c) / 3
     # 計算 R3 與 S3 突破價位 (最簡化趨勢版 R-Breaker)
-    r3 = h + 2 * (pivot - l)
-    s3 = l - 2 * (h - pivot)
+    r3 = h + MULTIPLIER * (pivot - l)
+    s3 = l - MULTIPLIER * (h - pivot)
     
     r3_line[i] = r3
     s3_line[i] = s3
@@ -113,7 +116,9 @@ chart_data = {
         });
     },
 
-    params: [],
+    params: [
+        { id: 'MULTIPLIER', label: '突破價位乘數', min: 1.0, max: 4.0, step: 0.1, default: 2.0, format: v => String(v) }
+    ],
 
     exercises: [
         'R-Breaker 在波動大的行情（例如趨勢初期）效果極佳，試著觀察它如何避開中間的震盪波段。'

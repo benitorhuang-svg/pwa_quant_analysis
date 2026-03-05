@@ -5,14 +5,16 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Quant_Book | 量化交易實戰平台</title>
+  <meta name="description" content="Quant_Lab — 大數據與量化策略實戰教學平台。透過瀏覽器直接驅動 Python 核心，互動式學習量化交易策略。" />
+  <meta name="theme-color" content="#06080e" />
+  <title>Quant_Lab | 量化交易實戰平台</title>
 
   <!-- Start loading Pyodide early -->
   <script src="https://cdn.jsdelivr.net/pyodide/v0.27.5/full/pyodide.js"></script>
 
   <style>
     body {
-      background: #0a0e1a;
+      background: #06080e;
       margin: 0;
     }
 
@@ -20,21 +22,21 @@
       content: "";
       position: fixed;
       inset: 0;
-      background: #0a0e1a;
+      background: #06080e;
       z-index: 1000;
     }
 
     #root:empty::before {
-      content: "🚀 正在初始化量化交易環境...";
+      content: "⚛ 正在初始化量化交易環境...";
       position: fixed;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
       color: #22d3ee;
-      font-family: 'Noto Sans TC', sans-serif;
-      font-weight: 500;
-      font-size: 1rem;
-      letter-spacing: 0.1em;
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: 0.15em;
       z-index: 1001;
       text-align: center;
     }

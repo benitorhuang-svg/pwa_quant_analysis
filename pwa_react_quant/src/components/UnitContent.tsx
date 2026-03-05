@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { UnitDef } from '../units/types';
 import { createEditor, getCode, setCode } from '../engine/editor';
 import { runAndGetResult, setGlobal } from '../engine/pyodide-runner';
 import { loadStockData } from '../engine/data-loader';
 import katex from 'katex';
+import { BookOpen, BarChart3, Play, Copy, Terminal, Settings2, Square, X, Code2 } from 'lucide-react';
 
 interface Props {
     unitId: string;
@@ -16,7 +17,7 @@ interface StrategyStats {
     sharpe_ratio: number;
     win_rate: number;
     total_trades: number;
-    [key: string]: unknown; // Allow for other optional keys from backtest
+    [key: string]: unknown;
 }
 
 export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
@@ -30,12 +31,13 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
         }
         return defaults;
     });
+
     const [outputLogs, setOutputLogs] = useState<{ text: string, type: string }[]>([]);
     const [isRunning, setIsRunning] = useState(false);
     const [stats, setStats] = useState<StrategyStats | null>(null);
-    const [viewMode, setViewMode] = useState<'theory' | 'result'>('theory');
+    const [centerView, setCenterView] = useState<'theory' | 'result'>('theory');
+    const [rightView, setRightView] = useState<'code' | 'terminal'>('code');
 
-    // Initialize side-effects when component mounts (or unit changes, but key={} covers this)
     useEffect(() => {
         if (editorRef.current) {
             createEditor(editorRef.current, unit.defaultCode);
@@ -46,18 +48,16 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                 setGlobal('stock_data', result.data);
             });
         }
-        // No need to manually reset state here because App.tsx provides key={unitId}
     }, [unitId, unit, pyodideReady]);
 
-    // Async trigger katex after theory rendered
     useEffect(() => {
-        if (viewMode === 'theory' && theoryRef.current) {
+        if (centerView === 'theory' && theoryRef.current) {
             theoryRef.current.querySelectorAll('.formula-box').forEach(el => {
                 if (el.id === 'kelly-formula') katex.render('f^* = \\frac{bp - q}{b}', el as HTMLElement, { displayMode: true, throwOnError: false });
                 if (el.id === 'ma-formula') katex.render('MA(n) = \\frac{1}{n} \\sum_{i=1}^{n} C_i', el as HTMLElement, { displayMode: true, throwOnError: false });
             });
         }
-    }, [viewMode, unitId]);
+    }, [centerView, unitId]);
 
     const handleParamChange = (id: string, value: string) => {
         const val = parseFloat(value);
@@ -68,113 +68,170 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
     };
 
     const handleRun = async () => {
-        if (!pyodideReady) return alert('核心引擎準備中，請稍候...');
+        if (!pyodideReady) return alert('引擎準備中...');
         setIsRunning(true);
-        setViewMode('result');
-        setOutputLogs([{ text: '🚀 策略執行中...', type: 'info' }]);
+        setRightView('terminal');
+        setOutputLogs([{ text: '> 正在初始化回測引擎...', type: 'info' }]);
 
         const code = getCode();
         const res = await runAndGetResult(code, unit.resultVar, (text, type) => {
-            setOutputLogs(prev => [...prev, { text, type }]);
+            setOutputLogs(prev => [...prev, { text: `[${new Date().toLocaleTimeString([], { hour12: false })}] ${text}`, type }]);
         });
 
         if (res.success && res.data) {
             setStats(res.data as StrategyStats);
+            setCenterView('result');
             setTimeout(() => {
                 unit.renderChart('result-chart', res.data as StrategyStats);
-            }, 50);
+            }, 100);
         } else if (!res.success) {
-            setOutputLogs(prev => [...prev, { text: '❌ ' + (res.error || '程式執行失敗'), type: 'error' }]);
+            setOutputLogs(prev => [...prev, { text: 'ERROR: ' + (res.error || 'Execution failed'), type: 'error' }]);
         }
         setIsRunning(false);
     };
 
     const handleCopy = () => {
         navigator.clipboard.writeText(getCode());
-        alert('程式碼已複製到剪貼簿');
-    };
-
-    const handleBackToTheory = () => {
-        setViewMode('theory');
     };
 
     return (
-        <div className="unit-layout">
-            <div className="unit-theory-panel">
-                <div className="theory-inner">
-                    {/* 
-                      CRITICAL FIX: Removed ternary with sibling-changing blocks.
-                      Instead, using CSS classes to hide/show to avoid DOM re-ordering errors.
-                    */}
-                    <div className={`view-theory fade-in ${viewMode === 'theory' ? 'active-view' : 'hidden-view'}`}>
-                        <header style={{ marginBottom: '2.5rem' }}>
-                            <h1 style={{ fontSize: '1.8rem', fontWeight: 900 }}>{unit.title}</h1>
-                            <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>{unit.description}</p>
-                        </header>
+        <div className="unit-layout-2col">
+            {/* ═══ CENTER PANEL ═══ */}
+            <div className="unit-center-panel">
+                {/* Top tabs */}
+                <div className="panel-top-tabs">
+                    <button
+                        className={`panel-tab ${centerView === 'theory' ? 'active' : ''}`}
+                        onClick={() => setCenterView('theory')}
+                    >
+                        <BookOpen size={12} /> 內容說明
+                    </button>
+                    <button
+                        className={`panel-tab ${centerView === 'result' ? 'active' : ''}`}
+                        onClick={() => setCenterView('result')}
+                    >
+                        <BarChart3 size={12} /> 執行結果
+                    </button>
+                </div>
+
+                {/* Stat cards row */}
+                <div className="stat-cards-row" style={{ display: centerView === 'result' && stats ? 'grid' : 'none' }}>
+                    <div className="stat-card-compact">
+                        <div className="stat-card-label">Returns</div>
+                        <div className={`stat-card-value ${(stats?.total_return ?? 0) >= 0 ? 'up' : 'down'}`}>
+                            {(stats?.total_return ?? 0) >= 0 ? '+' : ''}{stats?.total_return ?? 0}%
+                        </div>
+                    </div>
+                    <div className="stat-card-compact">
+                        <div className="stat-card-label">Sharpe</div>
+                        <div className="stat-card-value neutral">{stats?.sharpe_ratio ?? '-'}</div>
+                    </div>
+                    <div className="stat-card-compact">
+                        <div className="stat-card-label">Win Rate</div>
+                        <div className={`stat-card-value ${Number(stats?.win_rate ?? 0) > 50 ? 'up' : 'neutral'}`}>
+                            {stats?.win_rate ?? 0}%
+                        </div>
+                    </div>
+                    <div className="stat-card-compact">
+                        <div className="stat-card-label">Trades</div>
+                        <div className="stat-card-value accent">{stats?.total_trades ?? 0}</div>
+                    </div>
+                </div>
+
+                {/* Content area — BOTH views always in DOM */}
+                <div className="center-content-area">
+                    {/* Theory */}
+                    <div className={`theory-scroll ${centerView === 'theory' ? 'active-view' : 'hidden-view'}`}>
+                        <div style={{ marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                                <span className="badge-module">{unit.module}</span>
+                                <span className="badge-difficulty">{unit.difficulty || ''}</span>
+                            </div>
+                            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', marginBottom: '12px', lineHeight: 1.2 }}>
+                                {unit.title}
+                            </h1>
+                            <div className="info-callout">{unit.description}</div>
+                        </div>
 
                         <div className="section-card">
-                            <h2 className="section-title">📖 理論解說</h2>
+                            <h2 className="section-title"><BookOpen size={14} /> 核心理論</h2>
                             <div className="theory-text" ref={theoryRef} dangerouslySetInnerHTML={{ __html: unit.theory }} />
                         </div>
-
-                        {unit.exercises && (
-                            <div className="section-card">
-                                <h3 className="section-title" style={{ color: 'var(--text-muted)' }}>💡 延伸練習</h3>
-                                <ul style={{ paddingLeft: '1.2rem', color: 'var(--text-secondary)' }}>
-                                    {unit.exercises.map((e, i) => <li key={i} style={{ marginBottom: '0.5rem' }}>{e}</li>)}
-                                </ul>
-                            </div>
-                        )}
                     </div>
 
-                    <div className={`view-result fade-in ${viewMode === 'result' ? 'active-view' : 'hidden-view'}`}>
-                        <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h2 style={{ fontSize: '1.4rem' }}>📊 策略執行與終端輸出</h2>
-                            <button className="close-result-btn" onClick={handleBackToTheory} style={{ padding: '8px 16px' }}>
-                                返回內容解說 ✕
-                            </button>
-                        </header>
-
-                        {stats && (
-                            <div className="section-card result-dashboard">
-                                <div className="mini-stats">
-                                    <div className="ms-item"><span className="ms-lab">總報酬</span><span className={`ms-val ${stats.total_return >= 0 ? 'up' : 'down'}`}>{stats.total_return}%</span></div>
-                                    <div className="ms-item"><span className="ms-lab">夏普比率</span><span className="ms-val">{stats.sharpe_ratio}</span></div>
-                                    <div className="ms-item"><span className="ms-lab">勝率</span><span className="ms-val">{stats.win_rate}%</span></div>
-                                </div>
-                                <div className="chart-area" style={{ height: '360px', marginTop: '1rem' }}>
-                                    <canvas id="result-chart"></canvas>
-                                </div>
+                    {/* Results */}
+                    <div className={`results-scroll ${centerView === 'result' ? 'active-view' : 'hidden-view'}`}>
+                        {stats ? (
+                            <div className="chart-container">
+                                <canvas id="result-chart" style={{ width: '100%', height: '100%' }} />
+                            </div>
+                        ) : (
+                            <div className="empty-state">
+                                <Play size={44} />
+                                <p>尚未執行策略代碼</p>
+                                <p>點擊右側「Run」按鈕查看結果</p>
                             </div>
                         )}
-
-                        <div className="section-card console-card">
-                            <h3 className="section-title" style={{ fontSize: '0.9rem' }}>📟 終端機輸出 (Output)</h3>
-                            <div className="full-console" style={{ minHeight: '300px' }}>
-                                {outputLogs.map((log, i) => (
-                                    <div key={i} className={`log-line ${log.type}`}>{log.text}</div>
-                                ))}
-                                {isRunning && <span className="blink">▋</span>}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* ═══ RIGHT PANEL ═══ */}
             <div className="unit-editor-panel">
+                {/* Top toolbar: tabs + actions */}
+                <div className="editor-toolbar">
+                    <div className="editor-tabs">
+                        <button
+                            className={`editor-tab ${rightView === 'code' ? 'active' : ''}`}
+                            onClick={() => setRightView('code')}
+                        >
+                            <Code2 size={12} /> Code
+                        </button>
+                        <button className="editor-tab" onClick={handleCopy} title="Copy Code">
+                            <Copy size={12} /> Copy
+                        </button>
+                    </div>
+                    <div className="btn-group">
+                        <button
+                            className="btn-action"
+                            onClick={() => setRightView('terminal')}
+                            style={{
+                                background: rightView === 'terminal' ? 'rgba(255, 255, 255, 0.08)' : '',
+                                borderColor: rightView === 'terminal' ? 'var(--border-medium)' : ''
+                            }}
+                        >
+                            <Terminal size={12} /> Terminal Result
+                        </button>
+                        <button
+                            className={`btn-action btn-execute ${isRunning ? 'active' : ''}`}
+                            disabled={isRunning}
+                            onClick={handleRun}
+                        >
+                            {isRunning ? (
+                                <><Square size={11} fill="white" /> Stop</>
+                            ) : (
+                                <><Play size={12} fill="currentColor" /> Run</>
+                            )}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Parameters (Shared across right views) */}
                 {unit.params && unit.params.length > 0 && (
-                    <div className="params-dock top-dock">
-                        <div className="dock-header">⚙️ 策略參數即時調整</div>
-                        <div className="dock-grid">
+                    <div className="params-block">
+                        <div className="params-header">
+                            <div className="params-title"><Settings2 size={11} /> Parameters</div>
+                        </div>
+                        <div className="params-grid">
                             {unit.params.map(p => (
-                                <div key={p.id} className="dock-item">
-                                    <div className="dock-label">
-                                        <span>{p.label}</span>
-                                        <span className="dock-val">{p.format(params[p.id] ?? p.default)}</span>
+                                <div key={p.id} className="param-item">
+                                    <div className="param-info">
+                                        <span className="param-label">{p.label}</span>
+                                        <span className="param-value">{p.format(params[p.id] ?? p.default)}</span>
                                     </div>
                                     <input
                                         type="range"
-                                        className="p-slider"
+                                        className="custom-slider"
                                         min={p.min} max={p.max} step={p.step}
                                         value={params[p.id] ?? p.default}
                                         onChange={e => handleParamChange(p.id, e.target.value)}
@@ -185,28 +242,45 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                     </div>
                 )}
 
-                <div className="editor-toolbar">
-                    <div className="toolbar-label">
-                        {viewMode === 'result' && (
-                            <button className="x-return-btn" onClick={handleBackToTheory} style={{ marginRight: 10 }}>✕</button>
-                        )}
-                        程式碼編輯器
-                    </div>
-                    <div className="btn-group">
-                        <button className="btn-action btn-copy" onClick={handleCopy}>
-                            <span>📄</span> 複製
-                        </button>
-                        <button
-                            className={`btn-action btn-execute ${isRunning ? 'active' : ''}`}
-                            disabled={isRunning}
-                            onClick={handleRun}
-                        >
-                            <span>{isRunning ? '⏱' : '▶'}</span> {isRunning ? '中斷' : '執行'}
-                        </button>
-                    </div>
+                {/* Code View (default) */}
+                <div className={rightView === 'code' ? 'right-panel-active' : 'hidden-view'}>
+                    <div className="editor-container" ref={editorRef} />
                 </div>
 
-                <div className="editor-container" ref={editorRef} />
+                {/* Terminal Result View */}
+                <div className={`terminal-result-view ${rightView === 'terminal' ? 'active-view' : 'hidden-view'}`}>
+                    {outputLogs.length > 0 && !isRunning && (
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                            <button className="btn-clear-terminal" style={{ marginTop: 0 }} onClick={() => setOutputLogs([])}>
+                                <X size={11} /> Clear
+                            </button>
+                        </div>
+                    )}
+                    <div className="terminal-window-full">
+                        <div className="terminal-body">
+                            {outputLogs.length === 0 && (
+                                <div style={{ color: 'var(--text-dim)', opacity: 0.4, fontSize: '0.72rem' }}>
+                                    {'// 等待執行命令...'}
+                                </div>
+                            )}
+                            {outputLogs.map((log, i) => (
+                                <div key={i} className={`log-line ${log.type}`}>{log.text}</div>
+                            ))}
+                            {isRunning && <span className="blink">▋</span>}
+                        </div>
+                    </div>
+
+                    {unit.exercises && (
+                        <div className="section-card" style={{ marginTop: '16px' }}>
+                            <h2 className="section-title" style={{ color: 'var(--brand-amber)' }}>💡 實戰練習</h2>
+                            <ul style={{ paddingLeft: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.8 }}>
+                                {unit.exercises.map((e, i) => (
+                                    <li key={i} style={{ marginBottom: '6px' }}>{e}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

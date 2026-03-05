@@ -1,164 +1,135 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { initPyodide } from './engine/pyodide-runner';
 import { UNIT_LOADERS, UNIT_METADATA, UNIT_EXPORT_MAP } from './units-registry';
 import type { UnitDef } from './units/types';
 import Home from './components/Home';
 import UnitContent from './components/UnitContent';
-
-console.log('[App] 載入啟動塊');
+import UnitSidebar from './components/UnitSidebar';
+import { Moon, Sun } from 'lucide-react';
 
 export default function App() {
-  // Group metadata for the dropdowns
-  const moduleGroups = useMemo(() => {
-    const groups: Record<string, { id: string, title: string }[]> = {};
-    Object.entries(UNIT_METADATA).forEach(([id, meta]) => {
-      const modName = meta.module;
-      if (!groups[modName]) groups[modName] = [];
-      groups[modName].push({ id, title: meta.title });
-    });
-    return groups;
-  }, []);
-
-  const modules = useMemo(() => Object.keys(moduleGroups), [moduleGroups]);
-
-  const getHashInfo = useCallback(() => {
+  const getHashUnitId = useCallback(() => {
     const hash = window.location.hash.slice(1) || 'home';
     if (hash.startsWith('unit/')) {
-      const id = hash.replace('unit/', '');
-      const meta = UNIT_METADATA[id];
-      return { id, module: meta?.module || '' };
+      return hash.replace('unit/', '');
     }
-    return { id: null, module: modules.length > 0 ? modules[0] : '' };
-  }, [modules]);
+    return null;
+  }, []);
 
-  const [currentUnitId, setCurrentUnitId] = useState<string | null>(() => getHashInfo().id);
-  const [selectedModule, setSelectedModule] = useState<string>(() => getHashInfo().module);
-
+  const [currentUnitId, setCurrentUnitId] = useState<string | null>(() => getHashUnitId());
   const [currentUnit, setCurrentUnit] = useState<UnitDef | null>(null);
   const [loadingUnit, setLoadingUnit] = useState(false);
   const [pyodideReady, setPyodideReady] = useState(false);
-  const [statusText, setStatusText] = useState('初始化中');
+  const [statusText, setStatusText] = useState('Booting Engine');
   const [darkMode, setDarkMode] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleHashChange = useCallback(() => {
-    const { id, module } = getHashInfo();
-    console.log('[App] Hash 變更:', id);
+    const id = getHashUnitId();
     setCurrentUnitId(id);
     if (id) {
       setLoadingUnit(true);
-      if (module) setSelectedModule(module);
     } else {
       setCurrentUnit(null);
       setLoadingUnit(false);
     }
-  }, [getHashInfo]);
+  }, [getHashUnitId]);
 
   useEffect(() => {
-    console.log('[App] 組件掛載');
     window.addEventListener('hashchange', handleHashChange);
-
-    // Python Initialization
-    initPyodide(msg => {
-      setStatusText(msg);
-    }).then(() => {
-      console.log('[App] Pyodide Ready');
-      setPyodideReady(true);
-      setStatusText('系統就緒');
-    }).catch(err => {
-      console.error('[App] Pyodide Error:', err);
-      setStatusText('核心載入失敗');
-    });
-
+    initPyodide(msg => setStatusText(msg)).then(() => setPyodideReady(true));
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [handleHashChange]);
 
   useEffect(() => {
+    document.body.className = darkMode ? 'dark' : 'light';
+  }, [darkMode]);
+
+  useEffect(() => {
     if (currentUnitId && UNIT_LOADERS[currentUnitId]) {
-      console.log('[App] 正在載入單元定義:', currentUnitId);
-      // setLoadingUnit(true) is now handled in handleHashChange
       const loader = UNIT_LOADERS[currentUnitId];
       const exportKey = UNIT_EXPORT_MAP[currentUnitId];
-
       loader().then(module => {
-        console.log('[App] 單元載入成功:', currentUnitId);
         setCurrentUnit(module[exportKey]);
-        setLoadingUnit(false);
-      }).catch(err => {
-        console.error('[App] 單元載入出錯:', err);
         setLoadingUnit(false);
       });
     }
   }, [currentUnitId]);
 
+  const loadingProgress = pyodideReady ? 100 : Math.floor(Math.random() * 15 + 80);
+
   return (
     <>
-      {/* 啟動遮罩 - 僅在核心未準備好時顯示 */}
       {!pyodideReady && (
-        <div className="loading-overlay" style={{ background: '#0a0e1a', zIndex: 9999, position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="spinner"></div>
-          <div style={{ marginTop: 24, fontSize: '0.95rem', color: '#22d3ee', letterSpacing: '0.1em' }}>
+        <div className="loading-overlay">
+          <div style={{ position: 'relative', marginBottom: 28 }}>
+            <div className="spinner" style={{ width: 56, height: 56 }} />
+            <div style={{
+              position: 'absolute', inset: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '0.7rem', fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+              color: 'var(--brand-primary)'
+            }}>
+              {loadingProgress}%
+            </div>
+          </div>
+          <div style={{
+            fontSize: '0.72rem',
+            color: 'var(--brand-primary)',
+            letterSpacing: '0.25em',
+            textTransform: 'uppercase',
+            fontWeight: 600,
+            opacity: 0.7
+          }}>
             {statusText}...
+          </div>
+          <div style={{
+            marginTop: 16,
+            width: 200,
+            height: 2,
+            background: 'rgba(255,255,255,0.06)',
+            borderRadius: 2,
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${loadingProgress}%`,
+              height: '100%',
+              background: 'var(--gradient-primary, var(--brand-primary))',
+              borderRadius: 2,
+              transition: 'width 0.5s ease'
+            }} />
           </div>
         </div>
       )}
 
       <div className={`app-container ${darkMode ? 'dark' : 'light'}`}>
-        <nav className="top-nav">
-          <div className="nav-brand" onClick={() => (window.location.hash = 'home')} style={{ cursor: 'pointer' }}>
-            <span className="brand-icon">📈</span> Quant_Book (實戰)
-          </div>
+        {/* ── Main Layout: Sidebar + Content ── */}
+        <div className={`app-body ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+          <UnitSidebar
+            activeId={currentUnitId}
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+            darkMode={darkMode}
+            onToggleTheme={() => setDarkMode(!darkMode)}
+          />
 
-          <div className="nav-dropdowns">
-            <div className="nav-dropdown">
-              <span className="nav-dropdown-icon">📂</span>
-              <select className="nav-select" value={selectedModule} onChange={e => setSelectedModule(e.target.value)}>
-                {modules.map(mod => (<option value={mod} key={mod}>{mod.split(' · ')[1] || mod}</option>))}
-              </select>
-              <span className="nav-arrow">▼</span>
-            </div>
-
-            <div className="nav-dropdown">
-              <span className="nav-dropdown-icon">💡</span>
-              <select className="nav-select" value={currentUnitId || ''} onChange={e => (window.location.hash = `unit/${e.target.value}`)}>
-                <option value="">選擇章節單元...</option>
-                {moduleGroups[selectedModule]?.map(u => (<option value={u.id} key={u.id}>{u.title}</option>))}
-              </select>
-              <span className="nav-arrow">▼</span>
-            </div>
-
-            <div className="nav-dropdown">
-              <span className="nav-dropdown-icon">💻</span>
-              <select className="nav-select" disabled>
-                <option>{currentUnitId ? `strategy_${currentUnitId.replace('-', '_')}.py` : '腳本選擇...'}</option>
-              </select>
-              <span className="nav-arrow">▼</span>
-            </div>
-          </div>
-
-          <div className="header-actions">
-            <div className={`pyodide-status ${pyodideReady ? 'ready' : ''}`}>
-              <span className="status-dot"></span>
-              <span>{pyodideReady ? '引擎就緒' : statusText}</span>
-            </div>
-            <button className="theme-toggle" onClick={() => setDarkMode(!darkMode)} title="切換主題">
-              {darkMode ? '🌙' : '☀️'}
-            </button>
-          </div>
-        </nav>
-
-        <main className="main-content">
-          {currentUnitId ? (
-            loadingUnit ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#05070a' }}>
-                <div className="spinner"></div>
-              </div>
-            ) : currentUnit ? (
-              <UnitContent key={currentUnitId} unitId={currentUnitId} unit={currentUnit} pyodideReady={pyodideReady} />
-            ) : <div style={{ padding: 40, color: '#fff' }}>單元載入錯誤</div>
-          ) : (
-            <Home />
-          )}
-        </main>
+          <main className="main-content">
+            {currentUnitId ? (
+              loadingUnit ? (
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  height: '100%', background: 'var(--bg-app)'
+                }}>
+                  <div className="spinner" />
+                </div>
+              ) : currentUnit ? (
+                <UnitContent key={currentUnitId} unitId={currentUnitId} unit={currentUnit} pyodideReady={pyodideReady} />
+              ) : null
+            ) : (
+              <Home />
+            )}
+          </main>
+        </div>
       </div>
     </>
   );
