@@ -1,5 +1,5 @@
 import type { UnitDef } from './types';
-import { renderEquityCurve } from '../engine/chart-renderer';
+import { renderEquityCurve, renderVolumeChart, renderPriceWithMA } from '../engine/chart-renderer';
 import { Chart } from 'chart.js';
 
 export const unitDualThrust: UnitDef = {
@@ -126,27 +126,32 @@ def dual_thrust_strategy(engine, data, i):
     
     current_price = closes[i]
     
-    # 模擬日內突破 (為了簡化，如果當日最高價破上軌，假設收盤買進)
+    # 模擬日內突破 - 真實的 Dual Thrust 是反手交易系統
     if highs[i] > upper:
-        engine.buy(current_price, i, "向上突破")
+        if engine.position <= 0:
+            if engine.position < 0: engine.cover(current_price, i, "空單止損/反手")
+            engine.buy(current_price, i, "向上突破做多")
     elif lows[i] < lower:
-        engine.sell(current_price, i, "向下突破")
+        if engine.position >= 0:
+            if engine.position > 0: engine.sell(current_price, i, "多單止損/反手")
+            engine.short(current_price, i, "向下突破做空")
 
-# ═══ 執行回測 ═══
-engine = BacktestEngine(data, initial_capital=100000)
+# ═══ 執行回測 (包含滑價與手續費) ═══
+engine = BacktestEngine(data, initial_capital=100000, slippage=0.0002)
 report = engine.run(dual_thrust_strategy)
 
 # ═══ 輸出結果 ═══
-print(f"═══ Dual Thrust 策略回測 ═══")
-print(f"參數: N={N}, K1={K1}, K2={K2}")
+print(f"═══ Dual Thrust 專業反手策略 ═══")
 print(f"總報酬率: {report['total_return']:+.2f}%")
-print(f"勝    率: {report['win_rate']:.1f}%")
+print(f"獲利因子: {report['profit_factor']}")
+print(f"卡瑪比率: {report['calmar_ratio']}")
 
 chart_data = {
     **report,
     "closes": closes,
     "upper": upper_bands,
-    "lower": lower_bands
+    "lower": lower_bands,
+    "volumes": [d['Volume'] for d in data]
 }
 `,
 
@@ -157,26 +162,34 @@ chart_data = {
     if (!parent) return;
 
     const priceId = canvasId + '-price';
+    const volId = canvasId + '-volume';
     const equityId = canvasId + '-equity';
+
     parent.innerHTML = `
-      <div class="chart-wrapper" style="height:350px; margin-bottom:16px;">
-        <canvas id="${priceId}"></canvas>
-      </div>
-      <div class="chart-wrapper" style="height:250px;">
-        <canvas id="${equityId}"></canvas>
-      </div>
+      <div class="chart-wrapper" style="height:320px; margin-bottom:12px;"><canvas id="${priceId}"></canvas></div>
+      <div class="chart-wrapper" style="height:100px; margin-bottom:12px;"><canvas id="${volId}"></canvas></div>
+      <div class="chart-wrapper" style="height:200px;"><canvas id="${equityId}"></canvas></div>
     `;
 
     renderEquityCurve(equityId, data);
+    renderVolumeChart(volId, data);
 
     const ctx = document.getElementById(priceId) as HTMLCanvasElement;
     if (ctx) {
       const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
       const buy = new Array(data.closes.length).fill(null);
       const sell = new Array(data.closes.length).fill(null);
+      const short = new Array(data.closes.length).fill(null);
+      const cover = new Array(data.closes.length).fill(null);
+      const reasons = new Array(data.closes.length).fill('');
+
       data.trades?.forEach((t: any) => {
-        if (t.type === 'BUY') buy[t.index] = data.closes[t.index];
-        if (t.type === 'SELL') sell[t.index] = data.closes[t.index];
+        const idx = t.index;
+        reasons[idx] = t.reason || '';
+        if (t.type === 'BUY') buy[idx] = data.closes[idx];
+        else if (t.type === 'SELL') sell[idx] = data.closes[idx];
+        else if (t.type === 'SHORT') short[idx] = data.closes[idx];
+        else if (t.type === 'COVER') cover[idx] = data.closes[idx];
       });
 
       new Chart(ctx, {
@@ -184,17 +197,33 @@ chart_data = {
         data: {
           labels,
           datasets: [
-            { label: '收盤價', data: data.closes, borderColor: '#e2e8f0', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
-            { label: '上軌', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1 },
-            { label: '下軌', data: data.lower, borderColor: '#f59e0b', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1, fill: '-1', backgroundColor: 'rgba(6, 182, 212, 0.1)' },
-            { label: '買入', data: buy, borderColor: '#22c55e', backgroundColor: '#22c55e', pointRadius: 5, pointStyle: 'triangle', showLine: false },
-            { label: '賣出', data: sell, borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 5, pointStyle: 'triangle', pointRotation: 180, showLine: false }
+            { label: '收盤價', data: data.closes, borderColor: '#f1f5f9', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
+            { label: '上軌', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [5, 5], pointRadius: 0 },
+            { label: '下軌', data: data.lower, borderColor: '#f59e0b', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, fill: '-1', backgroundColor: 'rgba(6, 182, 212, 0.05)' },
+            // @ts-ignore
+            { label: '買入 ▲', data: buy, reasons: reasons, borderColor: '#22c55e', backgroundColor: '#22c55e', pointRadius: 6, pointStyle: 'triangle', showLine: false },
+            // @ts-ignore
+            { label: '賣出 ▼', data: sell, reasons: reasons, borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 6, pointStyle: 'triangle', pointRotation: 180, showLine: false },
+            // @ts-ignore
+            { label: '賣空 ▼', data: short, reasons: reasons, borderColor: '#fbbf24', backgroundColor: '#fbbf24', pointRadius: 6, pointStyle: 'triangle', pointRotation: 180, showLine: false },
+            // @ts-ignore
+            { label: '平空 ▲', data: cover, reasons: reasons, borderColor: '#60a5fa', backgroundColor: '#60a5fa', pointRadius: 6, pointStyle: 'triangle', showLine: false }
           ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#94a3b8' } }, title: { display: true, text: '📈 價格與突破軌道', color: '#e2e8f0' } },
-          scales: { x: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } }, y: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } } }
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            title: { display: true, text: 'Dual Thrust 突破軌道 (Long/Short Reversal)', color: '#fff' },
+            tooltip: {
+              callbacks: {
+                afterLabel: function (context: any) {
+                  const info = context.raw?.reason || context.dataset.reasons?.[context.dataIndex];
+                  return info ? '📝 理由: ' + info : '';
+                }
+              }
+            }
+          }
         }
       });
     }
@@ -211,6 +240,6 @@ chart_data = {
     '把 N 修改為 10，軌道會變寬，交易次數會變多還是變少？'
   ],
 
-  prevUnit: { id: '2-1', title: 'MACD 策略' },
-  nextUnit: { id: '6-1', title: '馬丁格爾策略' }
+  prevUnit: { id: '2-8', title: '隨機指標 KDJ' },
+  nextUnit: { id: '3-2', title: '日內高低點突破' }
 };

@@ -1,6 +1,6 @@
 import type { UnitDef } from './types';
 import { Chart } from 'chart.js';
-import { renderEquityCurve } from '../engine/chart-renderer';
+import { renderEquityCurve, renderVolumeChart, renderPriceWithMA } from '../engine/chart-renderer';
 
 export const unitDonchian: UnitDef = {
   title: '增強版唐奇安通道策略',
@@ -115,35 +115,39 @@ def donchian_strategy(engine, data, i):
     
     current_close = closes[i]
     
-    # 交易邏輯 (簡單多頭版)
-    # 如果目前無持倉，且價格大於上軌 => 買入
-    if engine.position == 0:
+    # 交易邏輯 (專業海龜版：包含反手機制)
+    if engine.position <= 0:
         if current_close > on_line:
-            engine.buy(current_close, i, "突破上軌進場")
+            if engine.position < 0: engine.cover(current_close, i, "空單止損/反手")
+            engine.buy(current_close, i, f"突破{N}日上軌")
             
-    # 如果持有多單，且價格跌破中軌 => 平倉
-    elif engine.position > 0:
-        if current_close < mid_line:
-            engine.sell(current_close, i, "跌破中軌出場")
+    elif engine.position >= 0:
+        if current_close < under_line:
+            if engine.position > 0: engine.sell(current_close, i, "多單止損/反手")
+            engine.short(current_close, i, f"跌破{N}日下軌")
+    
+    # 特殊出場邏輯：跌破中軌主動平倉 (非反手)
+    elif engine.position > 0 and current_close < mid_line:
+        engine.sell(current_close, i, "跌破中軌 (趨勢轉弱)")
+    elif engine.position < 0 and current_close > mid_line:
+        engine.cover(current_close, i, "站回中軌 (空頭減損)")
 
-# ═══ 執行回測 ═══
-engine = BacktestEngine(data, initial_capital=100000)
+# ═══ 執行回測 (包含滑價) ═══
+engine = BacktestEngine(data, initial_capital=100000, slippage=0.0003)
 report = engine.run(donchian_strategy)
 
 # ═══ 輸出結果 ═══
-print(f"═══ 唐奇安通道策略回測 ═══")
-print(f"通道週期: {N} 天")
+print(f"═══ 唐奇安通道專業回測 ═══")
 print(f"總報酬率: {report['total_return']:+.2f}%")
-print(f"最大回撤: {report['max_drawdown']:.2f}%")
-print(f"交易次數: {report['total_trades']} 次")
-print(f"夏普比率: {report['sharpe_ratio']:.2f}")
+print(f"獲利因子: {report['profit_factor']}")
 
 chart_data = {
     **report,
     "closes": closes,
     "upper": upper_bands,
     "lower": lower_bands,
-    "mid": mid_bands
+    "mid": mid_bands,
+    "volumes": [d['Volume'] for d in data]
 }
 `,
 
@@ -154,27 +158,34 @@ chart_data = {
     if (!parent) return;
 
     const priceId = canvasId + '-price';
+    const volId = canvasId + '-volume';
     const equityId = canvasId + '-equity';
+
     parent.innerHTML = `
-      <div class="chart-wrapper" style="height:350px; margin-bottom:16px;">
-        <canvas id="${priceId}"></canvas>
-      </div>
-      <div class="chart-wrapper" style="height:250px;">
-        <canvas id="${equityId}"></canvas>
-      </div>
+      <div class="chart-wrapper" style="height:320px; margin-bottom:12px;"><canvas id="${priceId}"></canvas></div>
+      <div class="chart-wrapper" style="height:100px; margin-bottom:12px;"><canvas id="${volId}"></canvas></div>
+      <div class="chart-wrapper" style="height:200px;"><canvas id="${equityId}"></canvas></div>
     `;
 
     renderEquityCurve(equityId, data);
+    renderVolumeChart(volId, data);
 
     const ctx = document.getElementById(priceId) as HTMLCanvasElement;
     if (ctx) {
       const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
       const buy = new Array(data.closes.length).fill(null);
       const sell = new Array(data.closes.length).fill(null);
+      const short = new Array(data.closes.length).fill(null);
+      const cover = new Array(data.closes.length).fill(null);
+      const reasons = new Array(data.closes.length).fill('');
 
       data.trades?.forEach((t: any) => {
-        if (t.type === 'BUY') buy[t.index] = data.closes[t.index];
-        if (t.type === 'SELL') sell[t.index] = data.closes[t.index];
+        const idx = t.index;
+        reasons[idx] = t.reason || '';
+        if (t.type === 'BUY') buy[idx] = data.closes[idx];
+        else if (t.type === 'SELL') sell[idx] = data.closes[idx];
+        else if (t.type === 'SHORT') short[idx] = data.closes[idx];
+        else if (t.type === 'COVER') cover[idx] = data.closes[idx];
       });
 
       new Chart(ctx, {
@@ -182,23 +193,33 @@ chart_data = {
         data: {
           labels,
           datasets: [
-            { label: '收盤價', data: data.closes, borderColor: '#e2e8f0', borderWidth: 1.5, pointRadius: 0, tension: 0.1 },
-            { label: '上軌', data: data.upper, borderColor: '#06b6d4', backgroundColor: 'rgba(6, 182, 212, 0.05)', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1, fill: '+2' }, // fill to lower band
-            { label: '中軌', data: data.mid, borderColor: '#8b5cf6', borderWidth: 1, borderDash: [2, 4], pointRadius: 0, tension: 0.1 },
-            { label: '下軌', data: data.lower, borderColor: '#f59e0b', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1 },
-            { label: '買入', data: buy, borderColor: '#22c55e', backgroundColor: '#22c55e', pointRadius: 5, pointStyle: 'triangle', showLine: false },
-            { label: '賣出', data: sell, borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 5, pointStyle: 'triangle', pointRotation: 180, showLine: false }
+            { label: '收盤價', data: data.closes, borderColor: '#f1f5f9', borderWidth: 1.5, pointRadius: 0 },
+            { label: '上軌', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [5, 5], pointRadius: 0 },
+            { label: '下軌', data: data.lower, borderColor: '#f59e0b', borderWidth: 1, borderDash: [5, 5], pointRadius: 0 },
+            { label: '中軌', data: data.mid, borderColor: 'rgba(139, 92, 246, 0.4)', borderWidth: 1, borderDash: [2, 2], pointRadius: 0 },
+            // @ts-ignore
+            { label: '買入 ▲', data: buy, reasons: reasons, borderColor: '#22c55e', backgroundColor: '#22c55e', pointRadius: 6, pointStyle: 'triangle', showLine: false },
+            // @ts-ignore
+            { label: '賣出 ▼', data: sell, reasons: reasons, borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 6, pointStyle: 'triangle', pointRotation: 180, showLine: false },
+            // @ts-ignore
+            { label: '賣空 ▼', data: short, reasons: reasons, borderColor: '#fbbf24', backgroundColor: '#fbbf24', pointRadius: 6, pointStyle: 'triangle', pointRotation: 180, showLine: false },
+            // @ts-ignore
+            { label: '平空 ▲', data: cover, reasons: reasons, borderColor: '#60a5fa', backgroundColor: '#60a5fa', pointRadius: 6, pointStyle: 'triangle', showLine: false }
           ]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { labels: { color: '#94a3b8' } },
-            title: { display: true, text: '📈 價格與唐奇安通道 (海龜核心)', color: '#e2e8f0' }
-          },
-          scales: {
-            x: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } },
-            y: { grid: { color: 'rgba(148,163,184,0.08)' }, ticks: { color: '#64748b' } }
+            title: { display: true, text: '唐奇安通道 (Turtle Reversal Suite)', color: '#fff' },
+            tooltip: {
+              callbacks: {
+                afterLabel: function (context: any) {
+                  const info = context.raw?.reason || context.dataset.reasons?.[context.dataIndex];
+                  return info ? '📝 理由: ' + info : '';
+                }
+              }
+            }
           }
         }
       });

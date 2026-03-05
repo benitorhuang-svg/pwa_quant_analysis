@@ -173,5 +173,5 @@ chart_data = {
     ],
 
     prevUnit: { id: '6-4', title: '反向馬丁格爾策略' },
-    nextUnit: null
+    nextUnit: { id: '8-1', title: '線性回歸預測' }
 };

@@ -1,6 +1,6 @@
 import type { UnitDef } from './types';
 import { Chart } from 'chart.js';
-import { renderEquityCurve } from '../engine/chart-renderer';
+import { renderEquityCurve, renderVolumeChart } from '../engine/chart-renderer';
 
 export const unitHlBreakout: UnitDef = {
     title: '日內高低點突破策略',
@@ -95,28 +95,33 @@ def strategy(engine, data, i):
     
     current_close = data[i]['Close']
     
-    # 交易邏輯：收盤價突破前 N 日最高點買入，跌破前 N 日最低點賣出
-    if engine.position == 0:
+    # 高低點突破：突破前高做多，跌破前低做空
+    if engine.position <= 0:
         if current_close > hist_high[i]:
+            if engine.position < 0: engine.cover(current_close, i, "空單反手")
             engine.buy(current_close, i, f"突破{LOOKBACK}日新高")
             
-    elif engine.position > 0:
+    elif engine.position >= 0:
         if current_close < hist_low[i]:
-            engine.sell(current_close, i, f"跌破{LOOKBACK}日新低")
+            if engine.position > 0: engine.sell(current_close, i, "多單反手")
+            engine.short(current_close, i, f"跌破{LOOKBACK}日新低")
 
-# 執行回測
-engine = BacktestEngine(data, initial_capital=100000)
+# ═══ 執行回測 (包含滑價與指標計算) ═══
+engine = BacktestEngine(data, initial_capital=100000, slippage=0.0003)
 report = engine.run(strategy)
 
 # 輸出結果
-print(f"═══ 高低點突破策略 ═══")
+print(f"═══ 高低點突破 (Long/Short) ═══")
 print(f"回看週期: {LOOKBACK}")
 print(f"總報酬率: {report['total_return']:+.2f}%")
+print(f"獲利因子: {report['profit_factor']}")
 
 chart_data = {
     **report,
     "upper": hist_high,
-    "lower": hist_low
+    "lower": hist_low,
+    "volumes": [d['Volume'] for d in data],
+    "closes": closes
 }
 `,
 
@@ -127,28 +132,65 @@ chart_data = {
         if (!parent) return;
 
         const priceId = canvasId + '-price';
+        const volId = canvasId + '-volume';
         const equityId = canvasId + '-equity';
         parent.innerHTML = `
-      <div class="chart-wrapper" style="height:350px; margin-bottom:12px;"><canvas id="${priceId}"></canvas></div>
-      <div class="chart-wrapper" style="height:250px;"><canvas id="${equityId}"></canvas></div>
-    `;
+          <div class="chart-wrapper" style="height:320px; margin-bottom:12px;"><canvas id="${priceId}"></canvas></div>
+          <div class="chart-wrapper" style="height:100px; margin-bottom:12px;"><canvas id="${volId}"></canvas></div>
+          <div class="chart-wrapper" style="height:200px;"><canvas id="${equityId}"></canvas></div>
+        `;
 
         renderEquityCurve(equityId, data);
+        renderVolumeChart(volId, data);
         const labels = data.dates.map((d: string, i: number) => i % Math.ceil(data.dates.length / 30) === 0 ? d : '');
+
+        const buy = new Array(data.closes.length).fill(null);
+        const sell = new Array(data.closes.length).fill(null);
+        const short = new Array(data.closes.length).fill(null);
+        const cover = new Array(data.closes.length).fill(null);
+        const reasons = new Array(data.closes.length).fill('');
+
+        data.trades?.forEach((t: any) => {
+            const idx = t.index;
+            reasons[idx] = t.reason || '';
+            if (t.type === 'BUY') buy[idx] = data.closes[idx];
+            else if (t.type === 'SELL') sell[idx] = data.closes[idx];
+            else if (t.type === 'SHORT') short[idx] = data.closes[idx];
+            else if (t.type === 'COVER') cover[idx] = data.closes[idx];
+        });
 
         new Chart(document.getElementById(priceId) as HTMLCanvasElement, {
             type: 'line',
             data: {
                 labels,
                 datasets: [
-                    { label: '收盤價', data: data.closes, borderColor: '#e2e8f0', borderWidth: 1, pointRadius: 0 },
-                    { label: 'N日高點', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1 },
-                    { label: 'N日低點', data: data.lower, borderColor: '#ef4444', borderWidth: 1, borderDash: [5, 5], pointRadius: 0, tension: 0.1 }
+                    { label: '收盤價', data: data.closes, borderColor: '#f1f5f9', borderWidth: 1.5, pointRadius: 0 },
+                    { label: 'N日高點', data: data.upper, borderColor: '#06b6d4', borderWidth: 1, borderDash: [5, 5], pointRadius: 0 },
+                    { label: 'N日低點', data: data.lower, borderColor: '#ef4444', borderWidth: 1, borderDash: [5, 5], pointRadius: 0 },
+                    // @ts-ignore
+                    { label: '買入 ▲', data: buy, reasons: reasons, borderColor: '#22c55e', backgroundColor: '#22c55e', pointRadius: 6, pointStyle: 'triangle', showLine: false },
+                    // @ts-ignore
+                    { label: '賣出 ▼', data: sell, reasons: reasons, borderColor: '#ef4444', backgroundColor: '#ef4444', pointRadius: 6, pointStyle: 'triangle', pointRotation: 180, showLine: false },
+                    // @ts-ignore
+                    { label: '賣空 ▼', data: short, reasons: reasons, borderColor: '#fbbf24', backgroundColor: '#fbbf24', pointRadius: 6, pointStyle: 'triangle', pointRotation: 180, showLine: false },
+                    // @ts-ignore
+                    { label: '平空 ▲', data: cover, reasons: reasons, borderColor: '#60a5fa', backgroundColor: '#60a5fa', pointRadius: 6, pointStyle: 'triangle', showLine: false }
                 ]
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { title: { display: true, text: '價格與突破軌道', color: '#fff' } }
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    title: { display: true, text: '價格與週期突破軌道', color: '#fff' },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function (context: any) {
+                                const info = context.raw?.reason || context.dataset.reasons?.[context.dataIndex];
+                                return info ? '📝 理由: ' + info : '';
+                            }
+                        }
+                    }
+                }
             }
         });
     },

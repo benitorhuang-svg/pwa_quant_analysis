@@ -5,8 +5,8 @@ import { Chart, registerables } from 'chart.js';
 Chart.register(...registerables);
 
 const C = {
-    green: '#22c55e', red: '#ef4444', cyan: '#06b6d4', blue: '#3b82f6',
-    amber: '#f59e0b', purple: '#a855f7', white: '#e2e8f0', muted: '#64748b',
+    green: '#22c55e', red: '#ef4444', cyan: '#06b6d4', blue: '#60a5fa',
+    amber: '#fbbf24', purple: '#a855f7', white: '#e2e8f0', muted: '#64748b',
     grid: 'rgba(148,163,184,0.08)', cyanA: 'rgba(6,182,212,0.1)'
 };
 
@@ -21,7 +21,7 @@ const crosshairSyncPlugin = {
     afterEvent: (chart: any, args: any) => {
         const { event } = args;
         const nativeEvent = event.native;
-        const match = chart.canvas.id.match(/^(.*)-(price|macd|adx|emv|equity|aroon|indicator)$/);
+        const match = chart.canvas.id.match(/^(.*)-(price|macd|adx|emv|equity|aroon|indicator|volume)$/);
         if (!match) return;
 
         const baseId = match[1];
@@ -96,16 +96,16 @@ export function renderEquityCurve(canvasId: string, data: any): void {
     const labels = dates.map((d: string, i: number) => i % Math.ceil(dates.length / 30) === 0 ? d : '');
     const buy = new Array(equity_curve.length).fill(null);
     const sell = new Array(equity_curve.length).fill(null);
+    const short = new Array(equity_curve.length).fill(null);
+    const cover = new Array(equity_curve.length).fill(null);
     const reasons = new Array(equity_curve.length).fill('');
     trades?.forEach((t: any) => {
-        if (t.type === 'BUY') {
-            buy[t.index] = equity_curve[t.index];
-            reasons[t.index] = t.reason || '';
-        }
-        if (t.type === 'SELL') {
-            sell[t.index] = equity_curve[t.index];
-            reasons[t.index] = t.reason || '';
-        }
+        const idx = t.index;
+        reasons[idx] = t.reason || '';
+        if (t.type === 'BUY') buy[idx] = equity_curve[idx];
+        else if (t.type === 'SELL') sell[idx] = equity_curve[idx];
+        else if (t.type === 'SHORT') short[idx] = equity_curve[idx];
+        else if (t.type === 'COVER') cover[idx] = equity_curve[idx];
     });
 
     charts[canvasId] = new Chart(ctx, {
@@ -118,7 +118,11 @@ export function renderEquityCurve(canvasId: string, data: any): void {
                 // @ts-ignore
                 { label: '買入 ▲', data: buy, reasons: reasons, borderColor: C.green, backgroundColor: C.green, pointRadius: 6, pointStyle: 'triangle' as const, showLine: false },
                 // @ts-ignore
-                { label: '賣出 ▼', data: sell, reasons: reasons, borderColor: C.red, backgroundColor: C.red, pointRadius: 6, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false }
+                { label: '賣出 ▼', data: sell, reasons: reasons, borderColor: C.red, backgroundColor: C.red, pointRadius: 6, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
+                // @ts-ignore
+                { label: '賣空 ▼', data: short, reasons: reasons, borderColor: C.amber, backgroundColor: C.amber, pointRadius: 6, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
+                // @ts-ignore
+                { label: '平空 ▲', data: cover, reasons: reasons, borderColor: C.blue, backgroundColor: C.blue, pointRadius: 6, pointStyle: 'triangle' as const, showLine: false }
             ]
         },
         options: {
@@ -137,16 +141,16 @@ export function renderPriceWithMA(canvasId: string, data: any): void {
     const labels = dates.map((d: string, i: number) => i % Math.ceil(dates.length / 30) === 0 ? d : '');
     const buy = new Array(closes.length).fill(null);
     const sell = new Array(closes.length).fill(null);
+    const short = new Array(closes.length).fill(null);
+    const cover = new Array(closes.length).fill(null);
     const reasons = new Array(closes.length).fill('');
     trades?.forEach((t: any) => {
-        if (t.type === 'BUY') {
-            buy[t.index] = closes[t.index];
-            reasons[t.index] = t.reason || '';
-        }
-        if (t.type === 'SELL') {
-            sell[t.index] = closes[t.index];
-            reasons[t.index] = t.reason || '';
-        }
+        const idx = t.index;
+        reasons[idx] = t.reason || '';
+        if (t.type === 'BUY') buy[idx] = closes[idx];
+        else if (t.type === 'SELL') sell[idx] = closes[idx];
+        else if (t.type === 'SHORT') short[idx] = closes[idx];
+        else if (t.type === 'COVER') cover[idx] = closes[idx];
     });
 
     const ds: any[] = [
@@ -158,7 +162,11 @@ export function renderPriceWithMA(canvasId: string, data: any): void {
         // @ts-ignore
         { label: '買入', data: buy, reasons: reasons, borderColor: C.green, backgroundColor: C.green, pointRadius: 5, pointStyle: 'triangle' as const, showLine: false },
         // @ts-ignore
-        { label: '賣出', data: sell, reasons: reasons, borderColor: C.red, backgroundColor: C.red, pointRadius: 5, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false }
+        { label: '賣出', data: sell, reasons: reasons, borderColor: C.red, backgroundColor: C.red, pointRadius: 5, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
+        // @ts-ignore
+        { label: '賣空', data: short, reasons: reasons, borderColor: C.amber, backgroundColor: C.amber, pointRadius: 5, pointStyle: 'triangle' as const, pointRotation: 180, showLine: false },
+        // @ts-ignore
+        { label: '平空', data: cover, reasons: reasons, borderColor: C.blue, backgroundColor: C.blue, pointRadius: 5, pointStyle: 'triangle' as const, showLine: false }
     );
 
     charts[canvasId] = new Chart(ctx, {
@@ -191,6 +199,47 @@ export function renderMultiLine(canvasId: string, data: any): void {
             scales: {
                 ...baseOpts.scales,
                 y: { ...baseOpts.scales.y, type: 'logarithmic' as const, ticks: { ...baseOpts.scales.y.ticks, callback: (v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v.toFixed(0) } }
+            }
+        }
+    });
+}
+
+export function renderVolumeChart(canvasId: string, data: any): void {
+    destroy(canvasId);
+    const ctx = document.getElementById(canvasId) as HTMLCanvasElement | null;
+    if (!ctx) return;
+
+    const { volumes, closes, dates } = data;
+    const labels = dates.map((d: string, i: number) => i % Math.ceil(dates.length / 30) === 0 ? d : '');
+
+    // Volume color based on price change
+    const backgroundColors = volumes.map((_: number, i: number) => {
+        if (i === 0) return C.grid;
+        return closes[i] >= closes[i - 1] ? 'rgba(52, 211, 153, 0.4)' : 'rgba(251, 113, 133, 0.4)';
+    });
+
+    charts[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: '成交量',
+                data: volumes,
+                backgroundColor: backgroundColors,
+                borderWidth: 0,
+                barThickness: 'flex'
+            }]
+        },
+        options: {
+            ...baseOpts,
+            plugins: {
+                ...baseOpts.plugins,
+                title: { display: true, text: '📊 成交量 (Volume)', color: C.white, font: { size: 12 } },
+                legend: { display: false }
+            },
+            scales: {
+                ...baseOpts.scales,
+                y: { display: true, grid: { display: false }, ticks: { display: false } }
             }
         }
     });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UNIT_METADATA } from '../units-registry';
 import { BookOpen, ChevronDown, ChevronRight, Layers, Moon, Sun } from 'lucide-react';
 
@@ -30,14 +30,19 @@ export default function UnitSidebar({ activeId, collapsed, onToggle, darkMode, o
     const activeModule = activeId ? UNIT_METADATA[activeId]?.module : null;
     const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
         const init: Record<string, boolean> = {};
-        moduleKeys.forEach(k => {
-            init[k] = k === activeModule;
-        });
+        if (activeModule) init[activeModule] = true;
         return init;
     });
 
+    // Sync expanded state when activeId changes (e.g. clicking "Next Unit")
+    useEffect(() => {
+        if (activeModule) {
+            setExpanded({ [activeModule]: true });
+        }
+    }, [activeModule]);
+
     const toggleModule = (key: string) => {
-        setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+        setExpanded(prev => ({ [key]: !prev[key] }));
     };
 
     if (collapsed) {

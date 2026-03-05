@@ -159,5 +159,5 @@ chart_data = {
   ],
 
   prevUnit: { id: '2-4', title: '阿隆指標 Aroon' },
-  nextUnit: { id: '3-1', title: 'Dual Thrust 突破' }
+  nextUnit: { id: '2-6', title: '布林帶 Bollinger Bands' }
 };

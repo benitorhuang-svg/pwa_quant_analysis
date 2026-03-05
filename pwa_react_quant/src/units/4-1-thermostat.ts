@@ -177,5 +177,5 @@ chart_data = {
     ],
 
     prevUnit: { id: '3-7', title: 'R-breaker 策略' },
-    nextUnit: { id: '5-1', title: '期貨跨期套利' }
+    nextUnit: { id: '4-2', title: 'MACD + RSI 雙過濾' }
 };

@@ -9,6 +9,9 @@ export const UNIT_LOADERS: Record<string, () => Promise<{ [key: string]: UnitDef
     '2-3': () => import('./units/2-3-ama'),
     '2-4': () => import('./units/2-4-aroon'),
     '2-5': () => import('./units/2-5-emv'),
+    '2-6': () => import('./units/2-6-bollinger'),
+    '2-7': () => import('./units/2-7-rsi'),
+    '2-8': () => import('./units/2-8-kdj'),
     '3-1': () => import('./units/3-1-dual-thrust'),
     '3-2': () => import('./units/3-2-hl-breakout'),
     '3-3': () => import('./units/3-3-donchian'),
@@ -17,12 +20,14 @@ export const UNIT_LOADERS: Record<string, () => Promise<{ [key: string]: UnitDef
     '3-6': () => import('./units/3-6-dynamic-breakout'),
     '3-7': () => import('./units/3-7-r-breaker'),
     '4-1': () => import('./units/4-1-thermostat'),
+    '4-2': () => import('./units/4-2-macd-rsi'),
     '5-1': () => import('./units/5-1-arbitrage'),
     '5-2': () => import('./units/5-2-bias'),
     '6-1': () => import('./units/6-1-martingale'),
     '6-2': () => import('./units/6-2-kelly'),
     '6-4': () => import('./units/6-4-anti-martingale'),
-    '7-1': () => import('./units/7-1-fundamentals')
+    '7-1': () => import('./units/7-1-fundamentals'),
+    '8-1': () => import('./units/8-1-linear-regression')
 };
 
 // Map of exported variables from each file.
@@ -35,6 +40,9 @@ export const UNIT_EXPORT_MAP: Record<string, string> = {
     '2-3': 'unitAma',
     '2-4': 'unitAroon',
     '2-5': 'unitEmv',
+    '2-6': 'unitBollinger',
+    '2-7': 'unitRsi',
+    '2-8': 'unitKdj',
     '3-1': 'unitDualThrust',
     '3-2': 'unitHlBreakout',
     '3-3': 'unitDonchian',
@@ -43,12 +51,14 @@ export const UNIT_EXPORT_MAP: Record<string, string> = {
     '3-6': 'unitDynamicBreakout',
     '3-7': 'unitRBreaker',
     '4-1': 'unitThermostat',
+    '4-2': 'unitMacdRsi',
     '5-1': 'unitArbitrage',
     '5-2': 'unitBias',
     '6-1': 'unitMartingale',
     '6-2': 'unitKelly',
     '6-4': 'unitAntiMartingale',
-    '7-1': 'unitFundamentals'
+    '7-1': 'unitFundamentals',
+    '8-1': 'unitLinearRegression'
 };
 
 // Basic metadata for the sidebar without loading the full content
@@ -59,6 +69,9 @@ export const UNIT_METADATA: Record<string, { title: string, module: string }> = 
     '2-3': { title: '自適應動態雙均線策略 (AMA)', module: '模組二 · 趨勢跟蹤' },
     '2-4': { title: '阿隆指標 AROON 策略', module: '模組二 · 趨勢跟蹤' },
     '2-5': { title: '簡易波動 EMV 策略', module: '模組二 · 趨勢跟蹤' },
+    '2-6': { title: '布林帶 Bollinger Bands 策略', module: '模組二 · 趨勢跟蹤' },
+    '2-7': { title: '相對強弱 RSI 策略', module: '模組二 · 趨勢跟蹤' },
+    '2-8': { title: '隨機指標 KDJ 策略', module: '模組二 · 趨勢跟蹤' },
     '3-1': { title: 'Dual Thrust 策略', module: '模組三 · 突破策略' },
     '3-2': { title: '日內高低點突破策略', module: '模組三 · 突破策略' },
     '3-3': { title: '增強版唐奇安通道策略', module: '模組三 · 突破策略' },
@@ -67,10 +80,12 @@ export const UNIT_METADATA: Record<string, { title: string, module: string }> = 
     '3-6': { title: '動態波幅突破策略', module: '模組三 · 突破策略' },
     '3-7': { title: 'R-breaker 交易策略', module: '模組三 · 突破策略' },
     '4-1': { title: '經典恆溫器策略', module: '模組四 · 切換策略' },
+    '4-2': { title: 'MACD + RSI 雙重過濾策略', module: '模組四 · 切換策略' },
     '5-1': { title: '期貨跨期套利實戰', module: '模組五 · 高級交易與套利' },
     '5-2': { title: '乖離率 BIAS 策略', module: '模組五 · 高級交易與套利' },
     '6-1': { title: '馬丁格爾策略與倍增法', module: '模組六 · 風險管理' },
     '6-2': { title: '凱利公式部位管理', module: '模組六 · 風險管理' },
     '6-4': { title: '反向馬丁格爾 (逆勢倍增法)', module: '模組六 · 風險管理' },
-    '7-1': { title: '基本面與技術面結合實踐', module: '模組七 · 終極實戰' }
+    '7-1': { title: '基本面與技術面結合實踐', module: '模組七 · 終極實戰' },
+    '8-1': { title: '線性回歸價格預測', module: '模組八 · 機器學習入門' }
 };

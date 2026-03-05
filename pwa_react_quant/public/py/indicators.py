@@ -113,7 +113,7 @@ def ATR(highs, lows, closes, period=14):
     return atr.tolist()
 
 def RSI(prices, period=14):
-    if len(prices) < period: return [np.nan]*len(prices)
+    if len(prices) <= period: return [np.nan]*len(prices)
     arr = np.array(prices)
     deltas = np.diff(arr)
     
@@ -125,6 +125,8 @@ def RSI(prices, period=14):
     avg_up = np.zeros(len(deltas))
     avg_down = np.zeros(len(deltas))
     
+    # Corrected index: period-1 of deltas corresponds to period of prices
+    # Since deltas has length n-1, max index is n-2
     avg_up[period-1] = np.mean(up_val[:period])
     avg_down[period-1] = np.mean(down_val[:period])
     
@@ -319,3 +321,46 @@ def CMI(closes, period=14):
         cmi[period:] = (abs_change / diff) * 100
             
     return cmi.tolist()
+
+def KDJ(highs, lows, closes, period=9, k_period=3, d_period=3):
+    n = len(closes)
+    if n < period:
+        nan_arr = [np.nan] * n
+        return nan_arr, nan_arr, nan_arr
+        
+    highs = np.array(highs)
+    lows = np.array(lows)
+    closes = np.array(closes)
+    
+    from numpy.lib.stride_tricks import sliding_window_view
+    rsv = np.full(n, np.nan)
+    
+    hw = sliding_window_view(highs, period)
+    lw = sliding_window_view(lows, period)
+    
+    h_max = np.max(hw, axis=1)
+    l_min = np.min(lw, axis=1)
+    
+    denom = h_max - l_min
+    denom = np.where(denom == 0, 1e-8, denom)
+    
+    rsv[period-1:] = (closes[period-1:] - l_min) / denom * 100
+    rsv[:period-1] = rsv[period-1] # Pad start to avoid errors
+    
+    k = np.full(n, 50.0)
+    d = np.full(n, 50.0)
+    j = np.full(n, 50.0)
+    
+    k_factor = 1.0 / k_period
+    d_factor = 1.0 / d_period
+    
+    for i in range(1, n):
+        k[i] = (1 - k_factor) * k[i-1] + k_factor * rsv[i]
+        d[i] = (1 - d_factor) * d[i-1] + d_factor * k[i]
+        j[i] = 3 * k[i] - 2 * d[i]
+        
+    k[:period-1] = np.nan
+    d[:period-1] = np.nan
+    j[:period-1] = np.nan
+    
+    return k.tolist(), d.tolist(), j.tolist()
