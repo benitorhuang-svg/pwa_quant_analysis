@@ -13,6 +13,12 @@ class BacktestEngine:
         self.dates = [d['Date'] for d in data]
         self.n = len(data)
         
+        # 提取成交量 (可能為 0 或缺失)
+        try:
+            self.volumes = np.array([d.get('Volume', 0) for d in data])
+        except Exception:
+            self.volumes = None
+        
         self.initial_capital = initial_capital
         self.capital = initial_capital
         self.position = 0           # 正數為多單，負數為空單
@@ -250,7 +256,7 @@ class BacktestEngine:
                 "dates": self.dates
             },
             "volume_data": {
-                "volumes": [s(x) for x in self.volumes.tolist()] if self.volumes is not None else [],
+                "volumes": [s(x) for x in self.volumes.tolist()] if hasattr(self, 'volumes') and self.volumes is not None else [],
                 "closes": [s(x) for x in self.closes.tolist()],
                 "dates": self.dates
             },

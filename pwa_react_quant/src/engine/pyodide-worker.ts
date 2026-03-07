@@ -54,7 +54,20 @@ async function run(code: string, resultVar: string | null) {
         if (resultVar) {
             await pyodide.runPythonAsync(`
 import json as _json
-_result_json = _json.dumps(${resultVar})
+import math as _math
+
+def _sanitize(obj):
+    if isinstance(obj, float):
+        if _math.isnan(obj): return None
+        if _math.isinf(obj): return 999 if obj > 0 else -999
+        return obj
+    if isinstance(obj, dict):
+        return {k: _sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_sanitize(v) for v in obj]
+    return obj
+
+_result_json = _json.dumps(_sanitize(${resultVar}))
             `);
             const jsonStr = pyodide.globals.get('_result_json');
             data = JSON.parse(jsonStr);
