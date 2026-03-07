@@ -23,9 +23,31 @@ export default function OptimizeConfigPanel({
     return (
         <div className="optimize-config-panel">
             <div className="optimize-header-row">
-                <h3 className="section-title">參數優化掃描</h3>
-                <p className="optimize-subtitle">選擇並設定參數區間</p>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 className="section-title" style={{ marginBottom: 2 }}>參數優化掃描</h3>
+                    <p className="optimize-subtitle">選擇並設定參數區間</p>
+                </div>
+                <button
+                    className="btn btn-glow animate-pulse"
+                    onClick={onOptimize}
+                    disabled={isOptimizing}
+                    style={{ margin: 0, padding: '8px 20px', fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, width: 'auto' }}
+                >
+                    {isOptimizing ? `計算中 (${optimizeProgress.current}/${optimizeProgress.total})...` : '開始暴力掃描參數'}
+                </button>
             </div>
+
+            {isOptimizing && (
+                <div className="optimize-progress-wrapper" style={{ padding: '0 4px', marginBottom: '12px' }}>
+                    <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ width: `${(optimizeProgress.current / optimizeProgress.total) * 100}%` }} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.65rem', color: 'var(--text-dim)' }}>
+                        <span>正在分析參數組合...</span>
+                        <span>{Math.round((optimizeProgress.current / optimizeProgress.total) * 100)}%</span>
+                    </div>
+                </div>
+            )}
 
             <div className="scan-config-grid">
                 {unit.params?.map(p => (
@@ -86,23 +108,6 @@ export default function OptimizeConfigPanel({
                         )}
                     </div>
                 ))}
-            </div>
-
-            <div className="optimize-action-area" style={{ flexDirection: 'column', gap: '12px' }}>
-                <button className="btn-big-glow" onClick={onOptimize} disabled={isOptimizing} style={{ width: '100%', margin: 0 }}>
-                    {isOptimizing ? `計算中 (${optimizeProgress.current}/${optimizeProgress.total})...` : '開始暴力掃描參數'}
-                </button>
-                {isOptimizing && (
-                    <div className="optimize-progress-wrapper" style={{ width: '100%', padding: '0 4px' }}>
-                        <div className="progress-bar-bg">
-                            <div className="progress-bar-fill" style={{ width: `${(optimizeProgress.current / optimizeProgress.total) * 100}%` }} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.65rem', color: 'var(--text-dim)' }}>
-                            <span>正在分析參數組合...</span>
-                            <span>{Math.round((optimizeProgress.current / optimizeProgress.total) * 100)}%</span>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

@@ -45,7 +45,7 @@ export default function UnitContent({ unitId, unit, pyodideReady, onRunStart }: 
         return defaults;
     });
     const [centerView, setCenterView] = useState<'theory' | 'run' | 'optimize'>('theory');
-    const [rightView, setRightView] = useState<'code' | 'terminal' | 'optimize'>('code');
+    const [rightView, setRightView] = useState<'code' | 'terminal'>('code');
     const [dataLoaded, setDataLoaded] = useState(false);
     const [dataSource, setDataSource] = useState<'real' | 'simulated'>('real');
     const [symbol, setSymbol] = useState('2330.TW');
@@ -197,8 +197,17 @@ export default function UnitContent({ unitId, unit, pyodideReady, onRunStart }: 
                         <RunResultsPanel stats={backtest.stats} unitId={unitId} />
                     </div>
 
-                    {/* Optimize Results */}
+                    {/* Optimize: Config + Results in one view */}
                     <div className={`results-scroll ${centerView === 'optimize' ? 'active-view' : 'hidden-view'}`}>
+                        <OptimizeConfigPanel
+                            unit={unit}
+                            params={params}
+                            scanParams={optimizer.scanParams}
+                            setScanParams={optimizer.setScanParams}
+                            isOptimizing={optimizer.isOptimizing}
+                            optimizeProgress={optimizer.optimizeProgress}
+                            onOptimize={handleOptimize}
+                        />
                         <OptimizeResultsPanel scanResults={optimizer.scanResults} />
                     </div>
                 </div>
@@ -212,20 +221,17 @@ export default function UnitContent({ unitId, unit, pyodideReady, onRunStart }: 
                         <button className={`editor-tab ${rightView === 'code' ? 'active' : ''}`} onClick={() => setRightView('code')}>
                             Code
                         </button>
-                        <button className={`editor-tab ${rightView === 'optimize' ? 'active' : ''}`} onClick={() => setRightView('optimize')}>
-                            Optimize
-                        </button>
                         <button className={`editor-tab ${rightView === 'terminal' ? 'active' : ''}`} onClick={() => setRightView('terminal')}>
                             Terminal
                         </button>
                     </div>
                     <div className="btn-group">
-                        <button className="btn-action" onClick={handleReset} style={{ fontSize: '0.75rem' }}>
+                        <button className="btn btn-outline" onClick={handleReset} style={{ fontSize: '0.72rem', padding: '5px 12px' }}>
                             Reset
                         </button>
                         <button
-                            className={`btn-action btn-execute ${backtest.isRunning ? 'active' : ''}`}
-                            style={{ minWidth: '70px', justifyContent: 'center' }}
+                            className={`btn ${backtest.isRunning ? 'btn-danger' : 'btn-primary'}`}
+                            style={{ minWidth: '70px', justifyContent: 'center', padding: '5px 16px' }}
                             onClick={handleRun}
                         >
                             {backtest.isRunning ? 'Stop' : 'Run'}
@@ -247,7 +253,7 @@ export default function UnitContent({ unitId, unit, pyodideReady, onRunStart }: 
 
                 {/* Code View */}
                 <div className={rightView === 'code' ? 'right-panel-active' : 'hidden-view'} style={{ position: 'relative' }}>
-                    <button className="btn-floating-copy" onClick={handleCopy} title="複製程式碼">
+                    <button className="btn btn-outline" style={{ position: 'absolute', top: '12px', right: '20px', zIndex: 50, padding: '4px 10px', fontSize: '0.7rem' }} onClick={handleCopy} title="複製程式碼">
                         <Copy size={13} /> Copy
                     </button>
                     <div className="editor-container" ref={editorRef} />
@@ -262,18 +268,7 @@ export default function UnitContent({ unitId, unit, pyodideReady, onRunStart }: 
                     />
                 </div>
 
-                {/* Optimize View */}
-                <div className={`optimize-view ${rightView === 'optimize' ? 'active-view' : 'hidden-view'}`}>
-                    <OptimizeConfigPanel
-                        unit={unit}
-                        params={params}
-                        scanParams={optimizer.scanParams}
-                        setScanParams={optimizer.setScanParams}
-                        isOptimizing={optimizer.isOptimizing}
-                        optimizeProgress={optimizer.optimizeProgress}
-                        onOptimize={handleOptimize}
-                    />
-                </div>
+
             </div>
         </div>
     );

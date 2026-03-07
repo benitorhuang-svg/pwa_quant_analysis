@@ -9,6 +9,13 @@ export default defineConfig({
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'credentialless'
+    },
+    proxy: {
+      '/api/yahoo': {
+        target: 'https://query1.finance.yahoo.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/yahoo/, ''),
+      }
     }
   }
 })

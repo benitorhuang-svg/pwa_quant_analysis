@@ -33,7 +33,7 @@ export default function TradeTable({ trades, unitId }: Props) {
         <div className="section-card trade-list-section">
             <div className="trade-history-header">
                 <h2 className="section-title"><Terminal size={14} /> 交易詳情記錄 (Trade History)</h2>
-                <button className="btn-chart-download" onClick={handleExportCSV}>
+                <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>
                     <FileDown size={11} /> 匯出 CSV 檔案
                 </button>
             </div>

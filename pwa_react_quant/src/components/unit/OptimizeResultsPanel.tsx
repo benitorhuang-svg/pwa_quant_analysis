@@ -11,13 +11,7 @@ interface Props {
 
 export default function OptimizeResultsPanel({ scanResults }: Props) {
     if (scanResults.length === 0) {
-        return (
-            <div className="empty-state">
-                <Zap size={44} />
-                <p>尚未執行參數優化</p>
-                <p>點擊右側「Optimize」標籤並點擊「開始暴力掃描參數」</p>
-            </div>
-        );
+        return null;
     }
 
     return (

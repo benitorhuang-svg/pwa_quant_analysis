@@ -26,7 +26,7 @@ export default function RunResultsPanel({ stats, unitId }: Props) {
         <>
             <div className="chart-container" style={{ minHeight: '400px' }}>
                 <div className="chart-actions">
-                    <button className="btn-chart-download" onClick={() => downloadChart('result-chart', 'equity', unitId)}>
+                    <button className="btn btn-outline btn-sm" onClick={() => downloadChart('result-chart', 'equity', unitId)}>
                         <FileDown size={11} /> 下載圖表
                     </button>
                 </div>
@@ -36,7 +36,7 @@ export default function RunResultsPanel({ stats, unitId }: Props) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="chart-container" style={{ minHeight: '220px' }}>
                     <div className="chart-actions">
-                        <button className="btn-chart-download" onClick={() => downloadChart('result-underwater-chart', 'drawdown', unitId)}>
+                        <button className="btn btn-outline btn-sm" onClick={() => downloadChart('result-underwater-chart', 'drawdown', unitId)}>
                             <FileDown size={11} /> 下載圖表
                         </button>
                     </div>
@@ -44,7 +44,7 @@ export default function RunResultsPanel({ stats, unitId }: Props) {
                 </div>
                 <div className="chart-container" style={{ minHeight: '220px' }}>
                     <div className="chart-actions">
-                        <button className="btn-chart-download" onClick={() => downloadChart('result-dist-chart', 'profit_distribution', unitId)}>
+                        <button className="btn btn-outline btn-sm" onClick={() => downloadChart('result-dist-chart', 'profit_distribution', unitId)}>
                             <FileDown size={11} /> 下載圖表
                         </button>
                     </div>
@@ -54,7 +54,7 @@ export default function RunResultsPanel({ stats, unitId }: Props) {
 
             <div className="chart-container" style={{ minHeight: '180px' }}>
                 <div className="chart-actions">
-                    <button className="btn-chart-download" onClick={() => downloadChart('result-price-ma-chart', 'price_ma', unitId)}>
+                    <button className="btn btn-outline btn-sm" onClick={() => downloadChart('result-price-ma-chart', 'price_ma', unitId)}>
                         <FileDown size={11} /> 下載圖表
                     </button>
                 </div>
@@ -63,7 +63,7 @@ export default function RunResultsPanel({ stats, unitId }: Props) {
 
             <div className="chart-container" style={{ minHeight: '180px' }}>
                 <div className="chart-actions">
-                    <button className="btn-chart-download" onClick={() => downloadChart('result-volume-chart', 'volume', unitId)}>
+                    <button className="btn btn-outline btn-sm" onClick={() => downloadChart('result-volume-chart', 'volume', unitId)}>
                         <FileDown size={11} /> 下載圖表
                     </button>
                 </div>

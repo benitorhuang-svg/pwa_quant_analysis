@@ -34,6 +34,51 @@ function setCache(symbol: string, data: OHLCVBar[]) {
     dataCache.set(symbol, { data, timestamp: Date.now() });
 }
 
+// ─── Yahoo Finance URL ──────────────────────────────────
+function yahooChartUrl(symbol: string) {
+    // Ensure Taiwan stocks have .TW suffix
+    const s = symbol.includes('.') ? symbol : `${symbol}.TW`;
+    return `/v8/finance/chart/${encodeURIComponent(s)}?range=2y&interval=1d`;
+}
+
+// ─── Parse Yahoo response ──────────────────────────────────
+function parseYahooResponse(json: any): OHLCVBar[] | null {
+    const result = json.chart?.result?.[0];
+    if (!result || !result.timestamp || !result.indicators?.quote?.[0]) return null;
+
+    const timestamps = result.timestamp as number[];
+    const quote = result.indicators.quote[0];
+    const data: OHLCVBar[] = [];
+
+    for (let i = 0; i < timestamps.length; i++) {
+        if (quote.open[i] === null || quote.close[i] === null) continue;
+        data.push({
+            Date: new Date(timestamps[i] * 1000).toISOString().slice(0, 10),
+            Open: quote.open[i],
+            High: quote.high[i],
+            Low: quote.low[i],
+            Close: quote.close[i],
+            Volume: quote.volume[i] || 0
+        });
+    }
+    return data.length > 50 ? data : null;
+}
+
+// ─── Fetch strategies (tried in order) ──────────────────────────────────
+async function tryFetch(url: string, label: string): Promise<OHLCVBar[] | null> {
+    try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const data = parseYahooResponse(json);
+        if (data) console.log(`[Data] ✅ ${label} 成功 (${data.length} 根K線)`);
+        return data;
+    } catch (e) {
+        console.warn(`[Data] ❌ ${label} 失敗:`, (e as Error).message);
+        return null;
+    }
+}
+
 // ─── Main Loader ──────────────────────────────────
 export async function loadStockData(symbol = '2330.TW'): Promise<LoadResult> {
     // Check cache first
@@ -42,51 +87,34 @@ export async function loadStockData(symbol = '2330.TW'): Promise<LoadResult> {
         return { data: cached, source: 'real', symbol };
     }
 
-    try {
-        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=2y&interval=1d`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+    const chartPath = yahooChartUrl(symbol);
+    const yahooFull = `https://query1.finance.yahoo.com${chartPath}`;
 
-        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+    // Strategy 1: Vite dev proxy (works in local development)
+    let data = await tryFetch(`/api/yahoo${chartPath}`, 'Vite Dev Proxy');
 
-        if (res.ok) {
-            const json = await res.json();
-            const result = json.chart?.result?.[0];
-
-            if (result && result.timestamp && result.indicators?.quote?.[0]) {
-                const timestamps = result.timestamp as number[];
-                const quote = result.indicators.quote[0];
-
-                const data: OHLCVBar[] = [];
-                for (let i = 0; i < timestamps.length; i++) {
-                    if (quote.open[i] === null || quote.close[i] === null) continue;
-
-                    const dateObj = new Date(timestamps[i] * 1000);
-                    const dateStr = dateObj.toISOString().slice(0, 10);
-
-                    data.push({
-                        Date: dateStr,
-                        Open: quote.open[i],
-                        High: quote.high[i],
-                        Low: quote.low[i],
-                        Close: quote.close[i],
-                        Volume: quote.volume[i] || 0
-                    });
-                }
-
-                if (data.length > 50) {
-                    console.log(`[Data] Yahoo Finance 真實數據: ${symbol} (${data.length} 根K線)`);
-                    setCache(symbol, data);
-                    return { data, source: 'real', symbol };
-                }
-            }
+    // Strategy 2: Multiple CORS proxies (for production / GitHub Pages)
+    if (!data) {
+        const proxies = [
+            `https://corsproxy.io/?url=${encodeURIComponent(yahooFull)}`,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooFull)}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooFull)}`,
+        ];
+        for (const proxyUrl of proxies) {
+            data = await tryFetch(proxyUrl, new URL(proxyUrl).hostname);
+            if (data) break;
         }
-        console.warn(`[Data] Yahoo API did not return valid chart data for ${symbol}`);
-    } catch (e) {
-        console.warn('[Data] Yahoo Finance API 請求失敗，改用模擬數據:', (e as Error).message);
     }
 
-    const data = generateSimulatedData(500);
-    return { data, source: 'simulated', symbol: '模擬股票' };
+    if (data) {
+        setCache(symbol, data);
+        return { data, source: 'real', symbol };
+    }
+
+    // Strategy 3: Fallback to simulated data
+    console.warn('[Data] 所有數據源均失敗，使用模擬數據');
+    const simData = generateSimulatedData(500);
+    return { data: simData, source: 'simulated', symbol: '模擬股票' };
 }
 
 export function generateSimulatedData(n = 500, startPrice = 100): OHLCVBar[] {
