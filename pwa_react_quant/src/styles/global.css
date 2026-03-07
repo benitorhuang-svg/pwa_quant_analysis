@@ -1185,7 +1185,7 @@ body::after {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 8px 0 0;
+    padding: 0 12px;
     border-bottom: 1px solid var(--border-subtle);
     background: var(--bg-header);
     flex-shrink: 0;
