@@ -286,7 +286,7 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
     }, [resize, stopResizing]);
 
     return (
-        <div className="unit-layout-2col" style={{ gridTemplateColumns: `${leftWidth}% auto ${100 - leftWidth}%` }}>
+        <div className="unit-layout-2col">
             {/* ═══ CENTER PANEL ═══ */}
             <div className="unit-center-panel">
                 {/* Top tabs */}
@@ -480,8 +480,6 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                 </div>
             </div>
 
-            {/* ═══ SPLITTER ═══ */}
-            <div className="resizer" onMouseDown={startResizing} />
 
             {/* ═══ RIGHT PANEL ═══ */}
             <div className="unit-editor-panel">

@@ -253,7 +253,7 @@ body::after {
 .app-body {
     flex: 1;
     display: grid;
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 20% 1fr;
     overflow: hidden;
     transition: grid-template-columns 0.3s var(--ease-out);
 }
@@ -1189,7 +1189,14 @@ body::after {
     border-bottom: 1px solid var(--border-subtle);
     background: var(--bg-header);
     flex-shrink: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
+
+.editor-toolbar::-webkit-scrollbar {
+    height: 0px;
+}
+
 
 .editor-tabs {
     display: flex;
@@ -1289,11 +1296,13 @@ body::after {
     display: flex;
     gap: 8px;
     align-items: center;
+    flex-shrink: 0;
+    margin-left: 12px;
 }
 
 .btn-action {
     height: 34px;
-    padding: 0 14px;
+    padding: 0 10px;
     border-radius: var(--radius-xs);
     font-size: 0.8rem;
     font-weight: 600;
