@@ -729,7 +729,7 @@ body::after {
     border: 1px solid rgba(129, 140, 248, 0.15);
 }
 
-.badge-difficulty {
+.badge-nav {
     font-size: 0.63rem;
     font-weight: 600;
     color: var(--text-muted);
@@ -737,6 +737,12 @@ body::after {
     padding: 3px 8px;
     border-radius: var(--radius-full);
     border: 1px solid var(--border-subtle);
+}
+
+.badge-nav:hover {
+    background: var(--bg-hover-strong);
+    color: var(--text-primary);
+    border-color: var(--border-medium);
 }
 
 .unit-title {

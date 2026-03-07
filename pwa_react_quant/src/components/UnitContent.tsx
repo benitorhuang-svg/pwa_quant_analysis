@@ -188,7 +188,7 @@ export default function UnitContent({ unitId, unit, pyodideReady, onRunStart }: 
                 <div className="center-content-area">
                     {/* Theory */}
                     <div className={`theory-scroll ${centerView === 'theory' ? 'active-view' : 'hidden-view'}`}>
-                        <TheoryPanel unit={unit} />
+                        <TheoryPanel unit={unit} unitId={unitId} />
                     </div>
 
                     {/* Run Results */}

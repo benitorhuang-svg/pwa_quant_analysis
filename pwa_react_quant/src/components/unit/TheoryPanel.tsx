@@ -5,13 +5,26 @@ import { useEffect, useRef } from 'react';
 import type { UnitDef } from '../../units/types';
 import katex from 'katex';
 import { BookOpen } from 'lucide-react';
+import { UNITS } from '../../units-registry';
 
 interface Props {
     unit: UnitDef;
+    unitId: string;
 }
 
-export default function TheoryPanel({ unit }: Props) {
+export default function TheoryPanel({ unit, unitId }: Props) {
     const theoryRef = useRef<HTMLDivElement>(null);
+
+    const sortedIds = Object.keys(UNITS).sort((a, b) => {
+        const [aMod, aUnit] = a.split('-').map(Number);
+        const [bMod, bUnit] = b.split('-').map(Number);
+        if (aMod !== bMod) return aMod - bMod;
+        return aUnit - bUnit;
+    });
+
+    const currIndex = sortedIds.indexOf(unitId);
+    const prevId = currIndex > 0 ? sortedIds[currIndex - 1] : null;
+    const nextId = currIndex !== -1 && currIndex < sortedIds.length - 1 ? sortedIds[currIndex + 1] : null;
 
     useEffect(() => {
         if (theoryRef.current) {
@@ -27,9 +40,22 @@ export default function TheoryPanel({ unit }: Props) {
     return (
         <>
             <div className="unit-header-area">
-                <div className="unit-header-badges">
-                    <span className="badge-module">{unit.module}</span>
-                    {unit.difficulty && <span className="badge-difficulty">{unit.difficulty}</span>}
+                <div className="unit-header-badges" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div className="badges-left">
+                        <span className="badge-module">{unit.module}</span>
+                    </div>
+                    <div className="badges-right" style={{ display: 'flex', gap: '8px' }}>
+                        {prevId && (
+                            <a href={`#unit/${prevId}`} className="badge-nav" style={{ textDecoration: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                « 上一單元
+                            </a>
+                        )}
+                        {nextId && (
+                            <a href={`#unit/${nextId}`} className="badge-nav" style={{ textDecoration: 'none', cursor: 'pointer', transition: 'all 0.2s' }}>
+                                下一單元 »
+                            </a>
+                        )}
+                    </div>
                 </div>
                 <h1 className="unit-title">{unit.title}</h1>
                 <div className="unit-description">
