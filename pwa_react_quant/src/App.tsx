@@ -1,11 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { initPyodide } from './engine/pyodide-runner';
-import { UNIT_LOADERS, UNIT_METADATA, UNIT_EXPORT_MAP } from './units-registry';
+import { UNITS } from './units-registry';
 import type { UnitDef } from './units/types';
 import Home from './components/Home';
 import UnitContent from './components/UnitContent';
 import UnitSidebar from './components/UnitSidebar';
-import { Moon, Sun } from 'lucide-react';
 
 export default function App() {
   const getHashUnitId = useCallback(() => {
@@ -23,6 +22,7 @@ export default function App() {
   const [statusText, setStatusText] = useState('Booting Engine');
   const [darkMode, setDarkMode] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const loadingProgressRef = useRef(10);
 
   const handleHashChange = useCallback(() => {
     const id = getHashUnitId();
@@ -37,7 +37,11 @@ export default function App() {
 
   useEffect(() => {
     window.addEventListener('hashchange', handleHashChange);
-    initPyodide(msg => setStatusText(msg)).then(() => setPyodideReady(true));
+    initPyodide(msg => {
+      setStatusText(msg);
+      // Smoothly increment progress based on actual stages
+      loadingProgressRef.current = Math.min(loadingProgressRef.current + 15, 90);
+    }).then(() => setPyodideReady(true));
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [handleHashChange]);
 
@@ -46,9 +50,8 @@ export default function App() {
   }, [darkMode]);
 
   useEffect(() => {
-    if (currentUnitId && UNIT_LOADERS[currentUnitId]) {
-      const loader = UNIT_LOADERS[currentUnitId];
-      const exportKey = UNIT_EXPORT_MAP[currentUnitId];
+    if (currentUnitId && UNITS[currentUnitId]) {
+      const { loader, exportKey } = UNITS[currentUnitId];
       loader().then(module => {
         setCurrentUnit(module[exportKey]);
         setLoadingUnit(false);
@@ -56,7 +59,7 @@ export default function App() {
     }
   }, [currentUnitId]);
 
-  const loadingProgress = pyodideReady ? 100 : Math.floor(Math.random() * 15 + 80);
+  const loadingProgress = pyodideReady ? 100 : loadingProgressRef.current;
 
   return (
     <>

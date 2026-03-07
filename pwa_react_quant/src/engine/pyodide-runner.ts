@@ -1,5 +1,6 @@
 /**
  * pyodide-runner.ts — Worker 管理介面
+ * Handles Pyodide Web Worker lifecycle, communication, and error recovery.
  */
 
 export interface RunResult {
@@ -13,9 +14,16 @@ import PyodideWorker from './pyodide-worker?worker';
 
 let worker: Worker | null = null;
 let ready = false;
-const readyCallbacks: (() => void)[] = [];
+const readyCallbacks: Array<{ resolve: () => void; reject: (err: Error) => void }> = [];
 let pendingResolvers: Record<string, (res: RunResult) => void> = {};
 let currentOutputHandler: ((text: string, type: 'info' | 'error') => void) | null = null;
+
+function rejectAllPending(errorMsg: string) {
+    Object.values(pendingResolvers).forEach(resolve =>
+        resolve({ success: false, output: '', error: errorMsg })
+    );
+    pendingResolvers = {};
+}
 
 export async function initPyodide(onProgress?: (msg: string) => void): Promise<void> {
     if (worker) return;
@@ -28,7 +36,7 @@ export async function initPyodide(onProgress?: (msg: string) => void): Promise<v
         const { type, ...payload } = e.data;
         if (type === 'READY') {
             ready = true;
-            readyCallbacks.forEach(cb => cb());
+            readyCallbacks.forEach(cb => cb.resolve());
             readyCallbacks.length = 0;
             console.log('[Worker] READY');
         } else if (type === 'STDOUT') {
@@ -49,11 +57,23 @@ export async function initPyodide(onProgress?: (msg: string) => void): Promise<v
             }
         } else if (type === 'ERROR') {
             console.error('[Worker] ERROR:', payload.error);
-            // If we're still waiting for READY, reject all waiters
             if (!ready) {
+                readyCallbacks.forEach(cb => cb.reject(new Error(payload.error)));
                 readyCallbacks.length = 0;
             }
+            rejectAllPending(payload.error || 'Worker encountered an error');
         }
+    };
+
+    // Handle Worker-level errors (e.g. script load failure, uncaught exceptions)
+    worker.onerror = (e) => {
+        const errorMsg = e.message || 'Web Worker crashed unexpectedly';
+        console.error('[Worker] Fatal error:', errorMsg);
+        if (!ready) {
+            readyCallbacks.forEach(cb => cb.reject(new Error(errorMsg)));
+            readyCallbacks.length = 0;
+        }
+        rejectAllPending(errorMsg);
     };
 
     const baseUrl = import.meta.env.BASE_URL || '/';
@@ -71,7 +91,10 @@ async function waitForReady(): Promise<void> {
     if (ready && worker) return;
     return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Python 環境啟動逾時 (30s)')), 30000);
-        readyCallbacks.push(() => { clearTimeout(timeout); resolve(); });
+        readyCallbacks.push({
+            resolve: () => { clearTimeout(timeout); resolve(); },
+            reject: (err) => { clearTimeout(timeout); reject(err); }
+        });
     });
 }
 
@@ -100,7 +123,7 @@ export async function setGlobal(name: string, value: unknown): Promise<void> {
 
 export function onReady(callback: () => void): void {
     if (ready) callback();
-    else readyCallbacks.push(callback);
+    else readyCallbacks.push({ resolve: callback, reject: () => { } });
 }
 
 export function isReady(): boolean { return ready; }
