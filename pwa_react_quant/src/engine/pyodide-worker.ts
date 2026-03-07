@@ -3,14 +3,14 @@
  * Python 環境在後台線程執行，避免阻塞 UI
  */
 
-// 使用 ESM 版本的 Pyodide
-// @ts-ignore
-import { loadPyodide } from 'https://cdn.jsdelivr.net/pyodide/v0.27.5/full/pyodide.mjs';
-
 let pyodide: any = null;
 
 async function init(baseUrl: string) {
     try {
+        // 使用動態 import 避免 Vite 對 CDN URL 進行錯誤的靜態解析
+        // @ts-ignore
+        const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.27.5/full/pyodide.mjs');
+
         pyodide = await loadPyodide({
             indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.5/full/'
         });
