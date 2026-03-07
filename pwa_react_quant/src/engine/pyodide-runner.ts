@@ -36,11 +36,16 @@ export async function initPyodide(onProgress?: (msg: string) => void): Promise<v
         } else if (type === 'STDERR') {
             currentOutputHandler?.(payload.text, 'error');
         } else if (type === 'RESULT') {
-            // 解析回報的結果
             const resolver = pendingResolvers['run'];
             if (resolver) {
                 resolver(payload as RunResult);
                 delete pendingResolvers['run'];
+            }
+        } else if (type === 'ACK') {
+            const resolver = pendingResolvers[`set_${payload.name}`];
+            if (resolver) {
+                resolver(null as any);
+                delete pendingResolvers[`set_${payload.name}`];
             }
         } else if (type === 'ERROR') {
             console.error('[Worker] ERROR:', payload.error);
@@ -75,7 +80,10 @@ export async function runAndGetResult(
 
 export async function setGlobal(name: string, value: unknown): Promise<void> {
     if (!worker || !ready) return;
-    worker.postMessage({ type: 'SET_GLOBAL', name, value });
+    return new Promise((resolve) => {
+        pendingResolvers[`set_${name}`] = resolve as any;
+        worker?.postMessage({ type: 'SET_GLOBAL', name, value });
+    });
 }
 
 export function onReady(callback: () => void): void {

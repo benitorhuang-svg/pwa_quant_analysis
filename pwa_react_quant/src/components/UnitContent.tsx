@@ -60,6 +60,7 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
     const [centerView, setCenterView] = useState<'theory' | 'result'>('theory');
     const [rightView, setRightView] = useState<'code' | 'terminal' | 'optimize'>('code');
     const [isOptimizing, setIsOptimizing] = useState(false);
+    const [dataLoaded, setDataLoaded] = useState(false);
     const [optimizeProgress, setOptimizeProgress] = useState({ current: 0, total: 0 });
     const [scanResults, setScanResults] = useState<any[]>([]);
     const [scanParams, setScanParams] = useState<Record<string, { start: number, end: number, step: number, active: boolean }>>({});
@@ -114,10 +115,15 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
         }
 
         if (unit.needsData && pyodideReady) {
-            loadStockData('2330').then(result => {
-                setGlobal('stock_data', result.data);
+            setDataLoaded(false);
+            loadStockData('2330').then(async result => {
+                await setGlobal('stock_data', result.data);
+                setDataLoaded(true);
             });
+        } else {
+            setDataLoaded(true);
         }
+
         if (unit.params) {
             const scanInit: any = {};
             unit.params.forEach(p => {
@@ -510,12 +516,14 @@ export default function UnitContent({ unitId, unit, pyodideReady }: Props) {
                             <Terminal size={12} /> Terminal Result
                         </button>
                         <button
-                            className={`btn-action btn-execute ${isRunning ? 'active' : ''}`}
-                            disabled={isRunning}
+                            className={`btn-action btn-execute ${isRunning || !dataLoaded ? 'active' : ''}`}
+                            disabled={isRunning || !pyodideReady || !dataLoaded}
                             onClick={handleRun}
                         >
                             {isRunning ? (
                                 <><Square size={11} fill="white" /> Stop</>
+                            ) : !dataLoaded ? (
+                                <><div className="spinner-dots" style={{ width: 12, height: 12 }}></div> Loading Data</>
                             ) : (
                                 <><Play size={12} fill="currentColor" /> Run</>
                             )}

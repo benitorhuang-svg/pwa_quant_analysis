@@ -75,6 +75,7 @@ self.onmessage = async (e) => {
     } else if (type === 'SET_GLOBAL') {
         if (pyodide) {
             pyodide.globals.set(payload.name, pyodide.toPy(payload.value));
+            self.postMessage({ type: 'ACK', name: payload.name });
         }
     }
 };
