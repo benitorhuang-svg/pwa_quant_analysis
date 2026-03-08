@@ -5,10 +5,17 @@ import type { UnitDef } from './units/types';
 import Home from './components/Home';
 import UnitContent from './components/UnitContent';
 import UnitSidebar from './components/UnitSidebar';
+import Playground from './components/Playground';
 
 export default function App() {
   const getHashUnitId = useCallback(() => {
-    const hash = window.location.hash.slice(1) || 'home';
+    const rawHash = window.location.hash.replace('#', '');
+    const hash = rawHash || 'home';
+    console.log('[Routing] Hash:', hash);
+
+    if (hash.includes('playground')) {
+      return 'playground';
+    }
     if (hash.startsWith('unit/')) {
       return hash.replace('unit/', '');
     }
@@ -27,7 +34,7 @@ export default function App() {
   const handleHashChange = useCallback(() => {
     const id = getHashUnitId();
     setCurrentUnitId(id);
-    if (id) {
+    if (id && id !== 'playground') {
       setLoadingUnit(true);
     } else {
       setCurrentUnit(null);
@@ -125,6 +132,8 @@ export default function App() {
                 }}>
                   <div className="spinner" />
                 </div>
+              ) : currentUnitId === 'playground' ? (
+                <Playground pyodideReady={pyodideReady} onRunStart={() => setSidebarCollapsed(true)} />
               ) : currentUnit ? (
                 <UnitContent
                   key={currentUnitId}

@@ -16,6 +16,7 @@ async function init(baseUrl: string) {
         });
 
         await pyodide.loadPackage('numpy');
+        await pyodide.loadPackage('pandas');
 
         // Load custom modules
         // 注意：在 Worker 中 fetch path 需要完整 URL 或正確的相對路徑
@@ -48,6 +49,10 @@ async function run(code: string, resultVar: string | null) {
     pyodide.setStderr({ batched: (text: string) => { self.postMessage({ type: 'STDERR', text }); } });
 
     try {
+        if (resultVar && pyodide.globals.get(resultVar)) {
+            pyodide.globals.delete(resultVar);
+        }
+
         await pyodide.runPythonAsync(code);
 
         let data = null;
@@ -67,7 +72,11 @@ def _sanitize(obj):
         return [_sanitize(v) for v in obj]
     return obj
 
-_result_json = _json.dumps(_sanitize(${resultVar}))
+try:
+    _val = eval('${resultVar}')
+    _result_json = _json.dumps(_sanitize(_val))
+except NameError:
+    _result_json = "null"
             `);
             const jsonStr = pyodide.globals.get('_result_json');
             data = JSON.parse(jsonStr);

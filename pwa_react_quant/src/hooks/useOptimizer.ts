@@ -73,7 +73,7 @@ export function useOptimizer({ unit, pyodideReady, params, onRunStart }: UseOpti
             let trialCode = originalCode;
             Object.entries(combo).forEach(([id, val]) => {
                 trialCode = trialCode.replace(
-                    new RegExp(`^(${escapeRegex(id)}\\s*=\\s*)([\\d.]+)`, 'm'),
+                    new RegExp(`^(${escapeRegex(id)}\\s*=\\s*)([\\w.]+)`, 'm'),
                     `$1${val}`
                 );
             });

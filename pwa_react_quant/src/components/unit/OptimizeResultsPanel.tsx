@@ -11,7 +11,15 @@ interface Props {
 
 export default function OptimizeResultsPanel({ scanResults }: Props) {
     if (scanResults.length === 0) {
-        return null;
+        return (
+            <div className="empty-state" style={{ height: '300px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '16px', border: '1px dashed var(--border-medium)', borderRadius: '8px' }}>
+                <Zap size={36} style={{ opacity: 0.2, marginBottom: '16px', color: 'var(--brand-primary)' }} />
+                <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>尚無優化結果</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px', maxWidth: '300px', textAlign: 'center' }}>
+                    請先在上方設定參數掃描區間，然後點擊「開始暴力掃描參數」
+                </p>
+            </div>
+        );
     }
 
     return (

@@ -20,6 +20,19 @@ export default function OptimizeConfigPanel({
     unit, params, scanParams, setScanParams,
     isOptimizing, optimizeProgress, onOptimize
 }: Props) {
+    const isAllSelected = unit.params?.every(p => scanParams[p.id]?.active) ?? false;
+
+    const handleToggleAll = () => {
+        const nextState = !isAllSelected;
+        setScanParams(prev => {
+            const next = { ...prev };
+            unit.params?.forEach(p => {
+                next[p.id] = { ...next[p.id], active: nextState };
+            });
+            return next;
+        });
+    };
+
     return (
         <div className="optimize-config-panel">
             <div className="optimize-header-row">
@@ -27,14 +40,24 @@ export default function OptimizeConfigPanel({
                     <h3 className="section-title" style={{ marginBottom: 2 }}>參數優化掃描</h3>
                     <p className="optimize-subtitle">選擇並設定參數區間</p>
                 </div>
-                <button
-                    className="btn btn-glow animate-pulse"
-                    onClick={onOptimize}
-                    disabled={isOptimizing}
-                    style={{ margin: 0, padding: '8px 20px', fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, width: 'auto' }}
-                >
-                    {isOptimizing ? `計算中 (${optimizeProgress.current}/${optimizeProgress.total})...` : '開始暴力掃描參數'}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                        className="btn btn-outline"
+                        onClick={handleToggleAll}
+                        disabled={isOptimizing}
+                        style={{ margin: 0, padding: '8px 16px', fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, width: 'auto' }}
+                    >
+                        {isAllSelected ? '取消全選' : '全部選取'}
+                    </button>
+                    <button
+                        className="btn btn-glow animate-pulse"
+                        onClick={onOptimize}
+                        disabled={isOptimizing}
+                        style={{ margin: 0, padding: '8px 20px', fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, width: 'auto' }}
+                    >
+                        {isOptimizing ? `計算中 (${optimizeProgress.current}/${optimizeProgress.total})...` : '開始暴力掃描參數'}
+                    </button>
+                </div>
             </div>
 
             {isOptimizing && (

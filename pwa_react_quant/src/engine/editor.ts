@@ -4,6 +4,9 @@
 import { EditorView, basicSetup } from 'codemirror';
 import { python } from '@codemirror/lang-python';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { keymap } from '@codemirror/view';
+import { indentWithTab } from '@codemirror/commands';
+import { acceptCompletion } from '@codemirror/autocomplete';
 
 let currentView: EditorView | null = null;
 
@@ -20,7 +23,16 @@ export function createEditor(container: HTMLElement, code: string, onChange?: (c
         currentView.destroy();
     }
 
-    const extensions = [basicSetup, python(), oneDark, darkTheme];
+    const extensions = [
+        basicSetup,
+        python(),
+        oneDark,
+        darkTheme,
+        keymap.of([
+            { key: 'Tab', run: acceptCompletion },
+            indentWithTab
+        ])
+    ];
     if (onChange) {
         extensions.push(EditorView.updateListener.of((update) => {
             if (update.docChanged) {

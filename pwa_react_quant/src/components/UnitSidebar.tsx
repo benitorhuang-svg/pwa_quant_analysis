@@ -77,6 +77,17 @@ export default function UnitSidebar({ activeId, collapsed, onToggle, darkMode, o
                             </div>
                         );
                     })}
+                    {/* 新增沙盒模式小圖示 */}
+                    <div
+                        className={`sidebar-icon-item ${activeId === 'playground' ? 'active' : ''}`}
+                        title="自由沙盒模式"
+                        onClick={() => {
+                            window.location.hash = 'playground';
+                            if (collapsed) onToggle();
+                        }}
+                    >
+                        <Zap size={18} />
+                    </div>
                 </div>
             </aside>
         );
@@ -136,6 +147,13 @@ export default function UnitSidebar({ activeId, collapsed, onToggle, darkMode, o
                         </div>
                     );
                 })}
+
+                <div className="tree-module" style={{ marginTop: '16px' }}>
+                    <a className={`tree-unit-item ${activeId === 'playground' ? 'active' : ''}`} href="#playground" style={{ padding: '12px 16px' }}>
+                        <Zap size={14} style={{ color: 'var(--brand-primary)' }} />
+                        <span className="tree-unit-name" style={{ marginLeft: '12px', fontWeight: 700, color: 'var(--brand-primary)' }}>自由沙盒模式</span>
+                    </a>
+                </div>
             </nav>
         </aside>
     );

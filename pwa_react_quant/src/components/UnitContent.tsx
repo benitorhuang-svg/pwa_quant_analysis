@@ -67,7 +67,7 @@ export default function UnitContent({ unitId, unit, pyodideReady, onRunStart }: 
         backtest.clearStats();
         const currentCode = getCode();
         const newDoc = currentCode.replace(
-            new RegExp(`^(${escapeRegex(id)}\\s*=\\s*)([\\d.]+)`, 'm'),
+            new RegExp(`^(${escapeRegex(id)}\\s*=\\s*)([\\w.]+)`, 'm'),
             `$1${value}`
         );
         if (newDoc !== currentCode) setCode(newDoc);

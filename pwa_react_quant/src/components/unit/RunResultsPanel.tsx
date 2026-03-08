@@ -4,6 +4,7 @@
 import type { StrategyStats } from '../../types/backtest';
 import { Play, FileDown } from 'lucide-react';
 import { downloadChart } from './utils';
+import { exportCsv } from '../../engine/csv-exporter';
 import TradeTable from './TradeTable';
 
 interface Props {
@@ -26,6 +27,9 @@ export default function RunResultsPanel({ stats, unitId }: Props) {
         <>
             <div className="chart-container" style={{ minHeight: '400px' }}>
                 <div className="chart-actions">
+                    <button className="btn btn-outline btn-sm" onClick={() => exportCsv(stats, `quant_report_${unitId}.csv`)} style={{ marginRight: '8px' }}>
+                        <FileDown size={11} /> 匯出 CSV 報表
+                    </button>
                     <button className="btn btn-outline btn-sm" onClick={() => downloadChart('result-chart', 'equity', unitId)}>
                         <FileDown size={11} /> 下載圖表
                     </button>
